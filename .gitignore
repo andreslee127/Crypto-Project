@@ -1,0 +1,13 @@
+# raw downloads and parsed caches (rebuilt by python -m s2p.download / run_all)
+data/
+*.zip
+*.pkl
+# logs, Python caches, virtual environments
+*.log
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
+venv/
+env/
+.env/

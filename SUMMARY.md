@@ -1,0 +1,52 @@
+# From signal to portfolio: one-page summary
+
+**Question.** Can simple, honestly tested signals predict next-hour returns of the 25 most-traded
+crypto perpetual futures? And if they can, what is the smartest way to trade them once trading
+costs are counted?
+
+**What we did.**
+* We used public Binance data, hourly, 2021–2026. The universe is chosen month by month, delisted
+  coins are kept, and non-crypto contracts are excluded.
+* Six signals were fixed in advance: two momentum, short-term reversal, funding rate, volume shock
+  and residual reversal. They were combined with a regression refitted every month on past data
+  only.
+* The resulting forecasts were traded four ways:
+  1. **Naive:** rebuild the ideal portfolio every hour.
+  2. **EMA:** move part of the way towards it each hour.
+  3. **Garleanu-Pedersen:** the textbook optimal rule when trading costs grow with trade size
+     squared. Trade a fixed fraction towards an "aim" portfolio that looks ahead to where the
+     signals are going.
+  4. **No-trade band:** the optimal rule for fees and spreads. Do nothing while your position is
+     inside a band, and trade only to its edge.
+* Settings were tuned on 2021–23, judged on 2024–mid-2025, and confirmed once on mid-2025 to
+  October 2026.
+
+**What we found.**
+1. **The maths works.** The optimal rules were derived from scratch and checked four independent
+   ways. In simulation, each wins exactly where theory says it should.
+2. **The signals are real but tiny and fleeting.** Reversal over 1–4 hours predicts the next hour
+   with high statistical confidence (t-statistics around 10). But the effect halves within one hour
+   and is gone within six. A few extreme hours wipe it out in dollar terms, so even before costs
+   the forecast made no money out of sample.
+3. **Naive trading is a disaster.** Rebuilding the portfolio every hour costs about 1.6–2.2 times
+   the capital each year in fees, spreads and market impact. The Sharpe ratio is −50.
+4. **Smart trading avoids the disaster, mostly by not trading.** All three smart rules cut trading
+   by about 99% and end near zero. Net Sharpe ratios fall between −1 and +1.5, with 95%
+   confidence intervals that include zero, in both the test and the final holdout. After allowing
+   for the 119 variants we evaluated, none is distinguishable from luck.
+
+**The lesson.** At retail taker costs (about 6.5 bp per trade plus impact), these hourly signals
+are not worth trading. The value of the optimal-trading layer here is that it recognised this and
+declined to trade, instead of turning a weak signal into a large loss. The conclusion depends on
+the cost assumptions (spreads cannot be measured from this data). With professional market-making
+costs of 1–2 bp, the fast reversal might be a different story.
+
+**Why you can trust it (or check it).**
+* There is a test that look-ahead is impossible.
+* PnL is reconciled with a hand calculation.
+* All settings were fixed before the results.
+* The holdout was run exactly once.
+* Every Sharpe ratio comes with a confidence interval.
+* There is a selection-bias haircut for all trials.
+* Two full reruns gave identical numbers.
+* One command rebuilds everything: `python -m s2p.run_all`.

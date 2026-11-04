@@ -1,0 +1,75 @@
+family,name,period,sharpe,mean_IC,turnover
+signal,mom_7d,train,1.168578023499907,,
+signal,mom_21d,train,0.6769183576662027,,
+signal,rev_4h,train,2.3693454861810364,,
+signal,funding,train,1.0728641287334701,,
+signal,volume_shock,train,0.29915300028699454,,
+signal,resid_rev,train,0.07658764058121047,,
+ridge_alpha,alpha=0.001,train,,0.04426065421600754,
+ridge_alpha,alpha=0.01,train,,0.044244821484204576,
+ridge_alpha,alpha=0.1,train,,0.04439320478624393,
+ridge_alpha,alpha=1.0,train,,0.04394199906549618,
+policy,naive(None),train,-84.98748566976234,,2204.6318294300036
+policy,ema(0.005),train,-0.42717584246285306,,16.97748982811492
+policy,ema(0.01),train,-0.7370372077208798,,33.02520917018333
+policy,ema(0.02),train,-1.3262100521830773,,64.32650987755103
+policy,ema(0.05),train,-2.8421414077615084,,154.81848835659497
+policy,ema(0.1),train,-5.57903787409943,,297.5884226221547
+policy,ema(0.2),train,-12.211375490822428,,558.4886736722652
+policy,ema(0.5),train,-37.380156232283696,,1199.4267289119007
+policy,gp(0.25),train,-0.6712005018260682,,96.92303951017998
+policy,gp(0.5),train,-0.4754276772852605,,81.71066643460138
+policy,gp(1.0),train,-0.27874714116653193,,65.33153976432337
+policy,gp(2.0),train,-0.10751170547223235,,49.80463367709247
+policy,gp(4.0),train,0.027276695321458773,,36.69132415734779
+policy,gp(8.0),train,0.1313093326759569,,26.4279015352365
+policy,gp(16.0),train,0.213013339611588,,18.68241637204476
+policy,band(0.25),train,-17.45827620395483,,333.9261302865237
+policy,band(0.5),train,-6.129430396704522,,116.4086672686708
+policy,band(1.0),train,-0.7656302795128667,,24.20029160066422
+policy,band(2.0),train,0.016255524356647677,,2.51573484183272
+policy,band(4.0),train,-0.32926706056904415,,0.12802790173673326
+policy_edge_check,ema(0.002),train,-0.21100028065768223,,
+policy_edge_check,ema(0.001),train,-0.0902018991005415,,
+policy_edge_check,gp(32.0),train,0.2760298952827438,,
+policy_edge_check,gp(64.0),train,0.3173396072170353,,
+policy_edge_check,gp(128.0),train,0.32424360536373326,,
+evaluation,naive 1x,test,-53.57188522610208,,
+evaluation,ema 1x,test,1.4787509505904572,,
+evaluation,gp 1x,test,-0.16234681826418967,,
+evaluation,band 1x,test,0.5056824335553696,,
+evaluation,naive all x0,test,-0.6898524524337613,,
+evaluation,ema all x0,test,1.8292228129539738,,
+evaluation,gp all x0,test,-0.6898524524337617,,
+evaluation,band all x0,test,-0.6869365891023561,,
+evaluation,naive all x0.5,test,-28.592575959575,,
+evaluation,ema all x0.5,test,1.6540448498099218,,
+evaluation,gp all x0.5,test,-0.10474955699435516,,
+evaluation,band all x0.5,test,-0.3016627017041408,,
+evaluation,naive all x1,test,-53.57188522610208,,
+evaluation,ema all x1,test,1.4787509505904572,,
+evaluation,gp all x1,test,-0.16234681826418967,,
+evaluation,band all x1,test,0.5056824335553696,,
+evaluation,naive all x2,test,-90.0477804879846,,
+evaluation,ema all x2,test,1.127928983533217,,
+evaluation,gp all x2,test,-0.31735978884506233,,
+evaluation,band all x2,test,0.2749834244039222,,
+evaluation,naive all x4,test,-122.97779517897311,,
+evaluation,ema all x4,test,0.42614515196921227,,
+evaluation,gp all x4,test,-0.5836497522229108,,
+evaluation,band all x4,test,,,
+evaluation,naive fee x2,test,-63.520957745925,,
+evaluation,ema fee x2,test,1.2615160654008573,,
+evaluation,gp fee x2,test,-0.25674308486176006,,
+evaluation,band fee x2,test,0.4548244847307623,,
+evaluation,naive spread x2,test,-58.05152197004887,,
+evaluation,ema spread x2,test,1.3822039278930047,,
+evaluation,gp spread x2,test,-0.20393021328730368,,
+evaluation,band spread x2,test,0.8734498722998593,,
+evaluation,naive impact x4,test,-104.94469978320123,,
+evaluation,ema impact x4,test,1.3671315424852255,,
+evaluation,gp impact x4,test,-0.22351943453005532,,
+evaluation,band impact x4,test,0.4967864618182946,,
+evaluation,gp decay x1.0,test,-0.16234681826418967,,
+evaluation,gp decay x0.5,test,-0.20769198472417164,,
+evaluation,gp decay x2.0,test,-0.1347243126968702,,

@@ -1,0 +1,7 @@
+level,check,count,examples
+info,delisted / data ends (kept: no survivorship bias),3,LUNAUSDT 2022-05-13 07h; MATICUSDT 2024-09-11 10h; EOSUSDT 2025-05-21 10h
+info,duplicate bars,15,1000PEPEUSDT: 16; AI16ZUSDT: 22; BABYUSDT: 22; EIGENUSDT: 36
+info,extreme 1h return,26,DOGEUSDT 2021-01-29 04h +68%; SUSHIUSDT 2021-05-19 13h -58%; SUSHIUSDT 2021-05-19 14h +104%; XLMUSDT 2021-05-19 14h +57%
+info,"funding files missing (signal NaN, no funding charged)",1,8/1350
+info,"truncated monthly file, days added from daily files",39,1000PEPEUSDT 2023-05: 1; AI16ZUSDT 2025-01: 1; BABYUSDT 2025-04: 1; EIGENUSDT 2024-10: 1
+info,|funding rate| > 1% per settlement,1,424 settlements

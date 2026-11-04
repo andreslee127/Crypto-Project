@@ -1,0 +1,93 @@
+# Single configuration for the whole pipeline.
+# PRE-REGISTRATION: every value below was fixed on 2026-11-03, before any result on real data
+# was computed. If you change anything here after seeing results, record it in report.md and
+# count it as an extra trial.
+
+seed: 20261103
+
+paths:
+  raw: data/raw            # downloaded zip files (cache, never edited)
+  cache: data/cache        # parsed panels
+  results: results         # tables and figures
+
+data:
+  base_url: https://data.binance.vision
+  listing_url: https://s3-ap-northeast-1.amazonaws.com/data.binance.vision
+  interval: 1h
+  first_month: 2020-12     # warm-up month (signals need 3 weeks of history)
+  last_month: 2026-10
+  universe_size: 25        # top-N USDT perpetuals by quote volume of the PREVIOUS month
+  universe_min_days: 25    # a symbol needs this many daily bars in the ranking month
+  max_ffill_bars: 3        # gaps up to 3 bars are forward-filled; longer -> not tradeable
+  # Crypto only. Rule: drop perpetuals whose underlyingType is not COIN in Binance's public contract
+  # metadata (fapi/v1/exchangeInfo, snapshot 2026-11-03). Added after seeing the universe LIST,
+  # before any return or signal was computed. All 15 first enter the universe in 2026 (holdout).
+  exclude_symbols: [BZUSDT, CLUSDT, XAGUSDT, XAUUSDT,                        # COMMODITY
+                    DRAMUSDT, EWYUSDT, KORUUSDT, MRVLUSDT, MUUSDT, SKHYUSDT,  # EQUITY
+                    SNDKUSDT, SNXXUSDT, SOXLUSDT, SPCXUSDT, SKHYNIXUSDT]      # EQUITY, KR_EQUITY
+  quality:
+    max_missing_frac: 0.01     # max share of missing hours per in-universe symbol-month
+    max_inner_gap_bars: 24     # longest allowed gap inside a symbol's history
+    max_funding_missing_frac: 0.05  # share of in-universe symbol-months without funding file
+    extreme_return: 0.5        # |1h return| above this is listed (not a failure)
+
+splits:                    # inclusive dates, UTC; decision timestamps
+  train: [2021-01-01, 2023-12-31]
+  test: [2024-01-01, 2025-06-30]
+  holdout: [2025-07-01, 2026-10-27]   # cut away at load time unless --holdout is given
+  # Holdout end moved from 2026-10-31 to 2026-10-27 before any holdout result existed: Binance Vision
+  # has no data for 2026-10-28 for any symbol (monthly and daily files; checked 2026-11-03).
+  burn_in_months: 6        # first months of train only fit models, never scored
+
+signals:                   # pre-registered. sign = hypothesis; all tests are two-sided.
+  mom_7d:       {kind: momentum,  lookback: 168, sign: 1}    # past 7-day return
+  mom_21d:      {kind: momentum,  lookback: 504, sign: 1}    # past 21-day return
+  rev_4h:       {kind: reversal,  lookback: 4,   sign: 1}    # minus past 4-hour return
+  funding:      {kind: funding,   lookback: 24,  sign: 1}    # minus mean funding rate, past 24h
+  volume_shock: {kind: volume,    lookback: 24, baseline: 504, sign: 0}  # log(24h vol / 21d avg); no prior
+  resid_rev:    {kind: residual,  lookback: 24, beta_window: 504, sign: 1}  # minus vol-scaled residual 24h return
+
+model:
+  vol_halflife: 168        # EWMA half-life (bars) for per-asset volatility
+  target_clip: 5.0         # winsorise vol-scaled target returns at +-5 when fitting
+  ridge_alphas: [0.001, 0.01, 0.1, 1.0]   # penalty per observation; chosen on train
+  refit: monthly           # walk-forward, expanding window
+
+costs:                     # ASSUMPTIONS: kline data cannot measure spreads or impact
+  fee_bps: 4.5             # taker fee per side (Binance VIP0 0.05% less 10% BNB discount)
+  half_spread_bps: 2.0     # assumed average half-spread for a top-25 perpetual
+  impact_coef: 1.0         # Y in square-root law: cost fraction = Y * sigma_daily * sqrt(Q / ADV)
+  adv_days: 30             # trailing window for average daily volume
+  q_ref_frac_aum: 0.0025   # trade size at which the quadratic impact matches the sqrt law
+  multipliers: [0.0, 0.5, 1.0, 2.0, 4.0]
+
+portfolio:
+  aum_usd: 10000000        # capital employed; returns are PnL / AUM (no compounding)
+  target_vol_annual: 0.10  # sets risk aversion gamma: naive target has this ex-ante vol on train
+  bars_per_year: 8760
+  discount: 0.999          # per-bar discount factor beta in the dynamic programme
+
+policies:                  # tuning grids, searched on train only (every point is a counted trial)
+  ema_rates: [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5]
+  gp_cost_mults: [0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0]   # scales the linear-cost part of Lambda
+  band_cost_mults: [0.25, 0.5, 1.0, 2.0, 4.0]
+  decay_mults: [0.5, 2.0]  # sensitivity: assumed signal half-life x0.5 and x2
+  # Added after the first real run: the train optimum of EMA and GP sat on a grid edge. Evaluated
+  # on train only as a disclosed robustness check (counted trials); the selection rule above is unchanged.
+  edge_check: {ema: [0.002, 0.001], gp: [32.0, 64.0, 128.0]}
+
+band_dp:                   # grid for the proportional-cost dynamic programme (normalised units)
+  n_x: 801                 # raised from 301 (grid steps visible in the theory figure; before any data)
+  n_f: 81
+  f_max: 4.0
+  x_max: 5.0
+  gh_nodes: 15
+  # normalised cost c / (sigma * kappa); realistic values are O(1-30). Extended from max 2.0
+  # after a back-of-envelope estimate, before any real-data result.
+  c_grid: [0.01, 0.03, 0.1, 0.3, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
+
+stats:
+  block: 168               # block bootstrap block length (bars) = 1 week
+  n_boot: 2000
+  nw_lags: 48              # Newey-West lags for IC t-statistics
+  ic_horizons: [1, 2, 6, 24]   # h=2 added after the first real run as a bid-ask-bounce diagnostic (reporting only)
