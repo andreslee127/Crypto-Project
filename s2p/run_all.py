@@ -18,6 +18,10 @@ from s2p.data import load_panel
 from s2p.plotstyle import INK2, MUTED, POLICY_COLOR, POLICY_LABEL, SERIES, plt, save
 
 POLICIES = ["naive", "ema", "gp", "band"]
+BAND_NOTE = ("Read the no-trade band's Sharpe with its gross_lev (average gross exposure / capital), turnover "
+             "and time in market (time_in_market = share of hours with any position; time_above_1pct = share "
+             "with gross exposure >= 1% of capital): a Sharpe on a near-empty book is not comparable to the "
+             "other policies.")
 
 
 # ---------------------------------------------------------------- helpers
@@ -151,6 +155,8 @@ def metrics(res, mask, cfg, rng):
             "funding_pct": 100 * r["funding"].sum() / aum / yrs,
             "turnover_x_per_yr": r["traded"].sum() / aum / yrs,
             "gross_lev": r["gross_exposure"].mean() / aum,
+            "time_in_market": (r["gross_exposure"] > 1.0).mean(),    # share of hours with any position
+            "time_above_1pct": (r["gross_exposure"] >= 0.01 * aum).mean(),   # ... with >= 1% of capital
             "n_bars": len(r), "n_eff": stats.effective_n(net), "n_blocks": len(r) // sc["block"]}
 
 
@@ -226,7 +232,9 @@ def evaluate(cfg, d, ctx, selected, wins, period, trials, rng, out):
             trials.add("evaluation", f"{k} {label}", period, m["net_SR"])
             sens.append({"costs": label, "policy": POLICY_LABEL[k], "net_SR": m["net_SR"],
                          "SR_lo95": m["SR_lo95"], "SR_hi95": m["SR_hi95"],
-                         "net_ret_pct": m["net_ret_pct"], "turnover_x_per_yr": m["turnover_x_per_yr"]})
+                         "net_ret_pct": m["net_ret_pct"], "turnover_x_per_yr": m["turnover_x_per_yr"],
+                         "gross_lev": m["gross_lev"], "time_in_market": m["time_in_market"],
+                         "time_above_1pct": m["time_above_1pct"]})
     sens = pd.DataFrame(sens)
 
     # signal-decay sensitivity: GP assumes half-lives x0.5 or x2 of the train estimate
@@ -241,6 +249,38 @@ def evaluate(cfg, d, ctx, selected, wins, period, trials, rng, out):
     return runs, main, diffs, sens, dec
 
 
+def posthoc_costs(cfg, d, ctx, selected, wins, trials, rng):
+    """POST-HOC (added after the holdout run), TEST PERIOD ONLY: policies at total linear costs
+    of 1-6.5 bp per unit traded (fee and half-spread scaled together, impact at 1x), plus the
+    break-even cost of the stand-alone 4h-reversal portfolio. Every run is a counted trial."""
+    base = cfg["costs"]["fee_bps"] + cfg["costs"]["half_spread_bps"]
+    aum, bpy = cfg["portfolio"]["aum_usd"], cfg["portfolio"]["bars_per_year"]
+    rows, nets = [], []
+    for bps in cfg["posthoc"]["linear_cost_bps"]:
+        k = bps / base
+        cx = scaled(ctx, cfg, d, fee=k, spread=k, impact=1.0)
+        for pol in POLICIES:
+            res = backtest.run_policy(pol, selected["params"][pol], cx)
+            m = metrics(res, wins["test"], cfg, rng)
+            trials.add("posthoc_cost", f"{pol} {bps}bp", "test", m["net_SR"])
+            rows.append({"linear_cost_bps": bps, "policy": POLICY_LABEL[pol], "net_SR": m["net_SR"],
+                         "SR_lo95": m["SR_lo95"], "SR_hi95": m["SR_hi95"], "net_ret_pct": m["net_ret_pct"],
+                         "turnover_x_per_yr": m["turnover_x_per_yr"], "gross_lev": m["gross_lev"],
+                         "time_in_market": m["time_in_market"], "time_above_1pct": m["time_above_1pct"]})
+            nets.append((res["net"][wins["test"]] / aum).to_numpy())
+    n_trials = len(trials.frame())                      # haircut uses the enlarged trial count
+    for r, net in zip(rows, nets):
+        sr0 = stats.expected_max_sharpe(n_trials, 1 / np.sqrt(stats.effective_n(net) - 1))
+        r.update(n_trials=n_trials, noise_max_SR=sr0 * np.sqrt(bpy), deflated_SR_prob=stats.deflated_sharpe(net, sr0))
+    be = []
+    for p in ["train", "test"]:
+        w = wins[p]
+        ret, turn = research.single_signal_portfolio(d["signals"]["rev_4h"][w], d["vol"][w], d["fwd_ret"][w])
+        be.append({"window": p, "gross_ret_pct_per_yr": 100 * ret.mean() * bpy,
+                   "turnover_x_per_yr": turn.mean() * bpy, "breakeven_cost_bps": ret.mean() / turn.mean() * 1e4})
+    return pd.DataFrame(rows), pd.DataFrame(be)
+
+
 def haircut(main, runs, wins, period, trials, cfg):
     """Selection-bias haircut: expected max Sharpe of N noise trials, and the deflated Sharpe."""
     bpy, aum = cfg["portfolio"]["bars_per_year"], cfg["portfolio"]["aum_usd"]
@@ -250,7 +290,10 @@ def haircut(main, runs, wins, period, trials, cfg):
         net = (runs[k]["net"][wins[period]] / aum).to_numpy()
         # a zero-mean strategy's per-bar Sharpe estimate has standard error ~ 1 / sqrt(n_eff)
         sr0 = stats.expected_max_sharpe(n_trials, 1 / np.sqrt(stats.effective_n(net) - 1))
+        ge = runs[k]["gross_exposure"][wins[period]]
         rows.append({"policy": POLICY_LABEL[k], "net_SR": stats.sharpe(net, bpy),
+                     "gross_lev": ge.mean() / aum, "time_in_market": (ge > 1.0).mean(),
+                     "time_above_1pct": (ge >= 0.01 * aum).mean(),
                      "noise_max_SR": sr0 * np.sqrt(bpy), "n_trials": n_trials,
                      "prob_SR_above_0": stats.deflated_sharpe(net, 0.0),
                      "deflated_SR_prob": stats.deflated_sharpe(net, sr0)})
@@ -405,18 +448,30 @@ def main(holdout=False, synthetic_data=False):
               "Train decides; the test columns are POST-HOC and do not change any selection.")
     train_rows = pd.DataFrame([{"policy": POLICY_LABEL[k], **metrics(backtest.run_policy(k, selected["params"][k], ctx),
                                                                      wins["train"], cfg, rng)} for k in POLICIES])
-    write(out, "policies_train", train_rows, tag + "Selected policies on train (in-sample for tuning)")
+    write(out, "policies_train", train_rows, tag + "Selected policies on train (in-sample for tuning)", BAND_NOTE)
 
     print(f"evaluating on {period} ...")
     runs, main_t, diffs, sens, dec = evaluate(cfg, d, ctx, selected, wins, period, trials, rng, out)
     write(out, f"policies_{period}", main_t, tag + f"Selected policies, {period} window, 1x costs",
-          "Returns are PnL / capital (USD 10m, no compounding). SR CI: circular block bootstrap, 1-week blocks.")
-    write(out, f"differences_{period}", diffs, tag + f"Paired differences in net Sharpe, {period}")
-    write(out, f"cost_sensitivity_{period}", sens, tag + f"Cost sensitivity, {period}")
+          "Returns are PnL / capital (USD 10m, no compounding). SR CI: circular block bootstrap, 1-week blocks. "
+          + BAND_NOTE)
+    write(out, f"differences_{period}", diffs, tag + f"Paired differences in net Sharpe, {period}", BAND_NOTE)
+    write(out, f"cost_sensitivity_{period}", sens, tag + f"Cost sensitivity, {period}", BAND_NOTE)
     write(out, f"decay_sensitivity_{period}", dec, tag + f"GP with mis-specified signal decay, {period}")
+    if not holdout:                                     # post-hoc, test only (holdout is spent)
+        ph, be = posthoc_costs(cfg, d, ctx, selected, wins, trials, np.random.default_rng(cfg["seed"] + 2))
+        note = ("POST-HOC SENSITIVITY ANALYSIS, NOT A PRE-REGISTERED RESULT. Test period only; linear cost = "
+                "fee + half-spread per unit traded, impact at 1x; parameters frozen from train. ")
+        write(out, "posthoc_cost_levels_test", ph, tag + "Post-hoc sensitivity: policies at 1-6.5 bp", note + BAND_NOTE)
+        write(out, "posthoc_breakeven_rev4h", be, tag + "Post-hoc: break-even cost of the stand-alone 4h reversal",
+              "POST-HOC, NOT A PRE-REGISTERED RESULT. Train and test windows (no holdout). Stand-alone "
+              "rev_4h portfolio (weights ~ signal / vol, gross leverage 1), before any trading policy. "
+              "Break-even = gross return / turnover: the one-way cost per unit traded at which net return "
+              "is 0. A negative value means the gross return was already negative.")
     write(out, f"haircut_{period}", haircut(main_t, runs, wins, period, trials, cfg),
           tag + f"Selection-bias haircut, {period}",
-          "noise_max_SR = expected max Sharpe of n_trials pure-noise strategies; deflated_SR_prob = P(true SR > that).")
+          "noise_max_SR = expected max Sharpe of n_trials pure-noise strategies; deflated_SR_prob = P(true SR > that). "
+          + BAND_NOTE)
     fig_cum(runs, wins[period], cfg["portfolio"]["aum_usd"], period, out / f"fig_pnl_{period}.png", synthetic_data)
     fig_cost_sens(sens, out / f"fig_cost_sensitivity_{period}.png", synthetic_data)
     trials.frame().to_csv(out / f"trials_{period}.csv", index=False)

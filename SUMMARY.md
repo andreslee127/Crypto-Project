@@ -33,7 +33,10 @@ costs are counted?
 4. **Smart trading avoids the disaster, mostly by not trading.** All three smart rules cut trading
    by about 99% and end near zero. Net Sharpe ratios fall between −1 and +1.5, with 95%
    confidence intervals that include zero, in both the test and the final holdout. After allowing
-   for the 119 variants we evaluated, none is distinguishable from luck.
+   for the 119 variants we evaluated, none is distinguishable from luck. The no-trade band's
+   Sharpe (+0.5 test, +0.9 holdout) should not be compared with the others. It comes from a
+   near-empty book: on average 0.3% of capital, never 1% of capital in any test hour, and almost
+   no trading.
 
 **The lesson.** At retail taker costs (about 6.5 bp per trade plus impact), these hourly signals
 are not worth trading. The value of the optimal-trading layer here is that it recognised this and

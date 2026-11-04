@@ -31,6 +31,23 @@ def test_pnl_reconciles_with_hand_computation():
     assert np.isclose(res.net.sum(), -13.61)
 
 
+def test_metrics_report_exposure_and_time_in_market():
+    import pandas as pd
+    from s2p import run_all
+    from s2p.config import load_config
+    cfg = load_config()
+    cfg["stats"]["n_boot"] = 50
+    n = 1000
+    expo = np.where(np.arange(n) < 250, 2e6, 0.0)                    # in the market 25% of hours
+    res = pd.DataFrame({"gross": np.ones(n), "cost_linear": 0.0, "cost_impact": 0.0, "funding": 0.0,
+                        "net": np.random.default_rng(0).normal(1, 10, n), "traded": 0.0,
+                        "gross_exposure": expo})
+    m = run_all.metrics(res, np.ones(n, bool), cfg, np.random.default_rng(1))
+    assert np.isclose(m["time_in_market"], 0.25)
+    assert np.isclose(m["time_above_1pct"], 0.25)          # 2e6 is 20% of the 10m capital
+    assert np.isclose(m["gross_lev"], 0.25 * 2e6 / cfg["portfolio"]["aum_usd"])
+
+
 def test_band_policy_holds_inside_and_trades_to_edge():
     lo = np.array([[-1.0], [-1.0], [2.0]])
     hi = np.array([[1.0], [1.0], [3.0]])

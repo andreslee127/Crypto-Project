@@ -1,6 +1,6 @@
 ## Paired differences in net Sharpe, test
 
-
+Read the no-trade band's Sharpe with its gross_lev (average gross exposure / capital), turnover and time in market (time_in_market = share of hours with any position; time_above_1pct = share with gross exposure >= 1% of capital): a Sharpe on a near-empty book is not comparable to the other policies.
 
 | comparison | delta_net_SR | lo95 | hi95 | share_draws_above_0 |
 |---|---|---|---|---|

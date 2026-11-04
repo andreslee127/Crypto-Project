@@ -22,12 +22,14 @@
   break even at a cost of about 0.9 bp per unit traded. The assumed cost is 6.5 bp plus impact.
 * **Optimal trading removes almost all the damage, but finds no net alpha.** EMA, GP and band
   policies tuned on train all cut turnover by about 99% and end near zero. Test net Sharpes are EMA
-  +1.48 [−0.29, 3.23], GP −0.16 [−1.80, 1.46] and band +0.51 [−0.75, 1.79]. None is
-  distinguishable from zero, and none survives the selection-bias haircut for 74 trials. The
-  train-optimal choice for each policy was to trade as little as its grid allowed.
-* **The holdout (run once, July 2025 – October 2026) agrees.** Naive −49; EMA −0.98, GP +0.61 and
-  band +0.92, all with CIs containing zero. The GP-vs-EMA ranking flipped relative to test, and the
-  funding signal faded (§7).
+  +1.48 [−0.29, 3.23] and GP −0.16 [−1.80, 1.46]. The band's is +0.51 [−0.75, 1.79], but **on a
+  near-empty book**: 0.3% average gross exposure, 0.03× turnover a year, and never 1% of capital
+  in any hour. A Sharpe on such a book is not comparable to the others. None is distinguishable
+  from zero, and none survives the selection-bias haircut. The train-optimal choice for each
+  policy was to trade as little as its grid allowed.
+* **The holdout (run once, July 2025 – October 2026) agrees.** Naive −49; EMA −0.98 and GP +0.61;
+  band +0.92 on a 0.3%-exposure book. All CIs contain zero. The GP-vs-EMA ranking flipped relative
+  to test, and the funding signal faded (§7).
 
 The honest headline: **with retail-level taker costs, these hourly signals are not worth trading,
 and the job of the optimal-trading layer is mainly to recognise that.**
@@ -100,7 +102,8 @@ Full derivation and tables: THEORY.md. In brief:
   * In Monte Carlo, GP beats naive and the best EMA by more than 3 standard errors.
   * Λ → 0 gives Markowitz; Λ → ∞ gives no trading.
   * The solution also matches the GP closed form for Λ = λΣ as I recall it. The paper itself was
-    not consulted (fetching it was declined), so that check rests on memory.
+    not consulted, so this is **not a replication**. The claims about the paper are listed as
+    unverified in THEORY.md §0.
 * **No-trade band:** a DP on a (position, signal) grid. Its structure is buy / hold / sell
   (`results/fig_theory_band.png`). In simulation with a proportional cost ĉ = 2 (normalised;
   realistic for this data), the band captures 71.5% of the frictionless utility, GP 66.3%, EMA
@@ -194,14 +197,21 @@ In the test period there is no gross alpha to lose.
 Test window, 1× costs. Every parameter was chosen by net Sharpe on train. n = 13,128 hourly
 observations; effective n (autocorrelation-adjusted) = 12,700–13,100; 78 weekly bootstrap blocks.
 
-| policy | train-chosen parameter | net SR [95% CI] | gross SR | net % / yr | vol % / yr | turnover ×/yr | cost drag % / yr | funding % / yr |
-|---|---|---|---|---|---|---|---|---|
-| naive | – | −53.6 [−58.1, −49.1] | −0.91 | −225.7 | 4.2 | 1,038 | 223.0 | −0.85 |
-| EMA | rate 0.005 | **+1.48** [−0.29, 3.23] | 1.54 | +2.5 | 2.6 | 8.1 | 0.59 | −0.49 |
-| Garleanu-Pedersen | cost mult. 16 | −0.16 [−1.80, 1.46] | −0.08 | −0.3 | 1.6 | 9.2 | 0.66 | −0.54 |
-| no-trade band | cost mult. 2 | +0.51 [−0.75, 1.79] | 0.54 | +0.1 | 0.2 | 0.04 | 0.00 | 0.00 |
+| policy | train-chosen parameter | net SR [95% CI] | gross SR | net % / yr | vol % / yr | avg gross exposure, % of capital | time in market | hours ≥ 1% of capital | turnover ×/yr | cost drag % / yr | funding % / yr |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| naive | – | −53.6 [−58.1, −49.1] | −0.91 | −225.7 | 4.2 | 19.0 | 100% | 100% | 1,038 | 223.0 | −0.85 |
+| EMA | rate 0.005 | **+1.48** [−0.29, 3.23] | 1.54 | +2.5 | 2.6 | 6.9 | 100% | 100% | 8.1 | 0.59 | −0.49 |
+| Garleanu-Pedersen | cost mult. 16 | −0.16 [−1.80, 1.46] | −0.08 | −0.3 | 1.6 | 6.2 | 100% | 100% | 9.2 | 0.66 | −0.54 |
+| no-trade band | cost mult. 2 | +0.51 [−0.75, 1.79] | 0.54 | +0.1 | 0.2 | **0.3** | 100% | **0%** | **0.03** | 0.00 | 0.00 |
 
-(Negative funding = funding received.)
+(Negative funding = funding received. "Time in market" = share of hours with any open position.)
+
+**How to read the band's row.** The band keeps the small positions it holds, so it is "in the
+market" every hour. But its book is near-empty: 0.3% of capital on average, never 1% of capital
+in any test hour, and almost no trading (0.03× capital a year). Its Sharpe is the ratio of two
+tiny numbers. It **is not comparable** to the other policies' Sharpes, and should not be read
+as evidence that the band "works". On train the band held more (1.7% average exposure, at least
+1% of capital in 38% of hours) and earned a net Sharpe of 0.02.
 
 Paired block-bootstrap differences in net Sharpe (same resampled weeks for both policies):
 
@@ -213,11 +223,13 @@ Paired block-bootstrap differences in net Sharpe (same resampled weeks for both 
 | GP − EMA | −1.64 | [−2.72, −0.54] | 0.4% |
 | band − GP | +0.67 | [−1.00, 2.35] | 79% |
 
+(The band rows compare a 0.3%-exposure book with full books; see the note above.)
+
 **Selection-bias haircut.** 74 variants were evaluated in total (`results/trials_test.csv`: 6
 signals, 4 ridge penalties, 20 policy-grid points, 5 grid-edge checks, 32 cost scenarios, 3 decay
 scenarios, 4 main evaluations). The expected maximum Sharpe of 74 pure-noise strategies over this
 sample is about 2.0. The deflated-Sharpe probability that the true Sharpe exceeds that is 0.27
-(EMA), 0.04 (band) and 0.004 (GP).
+(EMA), 0.04 (band, on its near-empty book) and 0.004 (GP).
 
 **Answer.**
 
@@ -244,14 +256,18 @@ sample is about 2.0. The deflated-Sharpe probability that the true Sharpe exceed
 Net Sharpe on test. Policies keep their train-chosen parameters, but see and pay the scaled
 costs, so GP and the band adapt automatically.
 
-| cost multiplier | naive | EMA | GP | band |
+| cost multiplier | naive | EMA | GP | band (avg gross exposure, % of capital) |
 |---|---|---|---|---|
-| 0× | −0.69 | 1.83 [0.10, 3.53] | −0.69 | −0.69 |
-| 0.5× | −28.6 | 1.65 | −0.11 | −0.30 |
-| 1× | −53.6 | 1.48 | −0.16 | 0.51 |
-| 2× | −90.0 | 1.13 | −0.32 | 0.28 |
-| 4× | −123.0 | 0.43 | −0.58 | no trades |
-| fee ×2 / spread ×2 / impact ×4 (others 1×) | −63.5 / −58.1 / −104.9 | 1.26 / 1.38 / 1.37 | −0.26 / −0.20 / −0.22 | 0.46 / 0.87 / 0.50 |
+| 0× | −0.69 | 1.83 [0.10, 3.53] | −0.69 | −0.69 (18.9%) |
+| 0.5× | −28.6 | 1.65 | −0.11 | −0.30 (0.8%) |
+| 1× | −53.6 | 1.48 | −0.16 | 0.51 (0.3%) |
+| 2× | −90.0 | 1.13 | −0.32 | 0.28 (0.1%) |
+| 4× | −123.0 | 0.43 | −0.58 | no trades (0%) |
+| fee ×2 / spread ×2 / impact ×4 (others 1×) | −63.5 / −58.1 / −104.9 | 1.26 / 1.38 / 1.37 | −0.26 / −0.20 / −0.22 | 0.46 / 0.87 / 0.50 (0.2–0.3%) |
+
+At every cost level from 0.5× upwards, the band's book is below 1% of capital, so its Sharpe is
+not comparable to the others'. Exposure, turnover and time in market for every cell are in
+`results/cost_sensitivity_test.md`.
 
 `results/fig_cost_sensitivity_test.png` plots these with CIs.
 
@@ -277,18 +293,22 @@ data-quality check before computing anything, because 2026-10-28 is missing at t
 end date was then moved to 2026-10-27 and the run repeated. Nothing else changed. Results are
 reported as they came out.
 
-| policy | net SR [95% CI] | gross SR | net % / yr | turnover ×/yr | cost drag % / yr |
-|---|---|---|---|---|---|
-| naive | −49.0 [−52.0, −46.1] | 0.10 | −161.1 | 840 | 162.8 |
-| EMA | −0.98 [−3.00, 1.35] | −0.65 | −1.8 | 6.4 | 0.46 |
-| Garleanu-Pedersen | +0.61 [−0.96, 2.06] | 0.19 | +0.8 | 6.0 | 0.44 |
-| no-trade band | +0.92 [−0.42, 2.35] | 0.10 | +0.2 | 0.05 | 0.00 |
+| policy | net SR [95% CI] | gross SR | net % / yr | avg gross exposure, % of capital | turnover ×/yr | cost drag % / yr |
+|---|---|---|---|---|---|---|
+| naive | −49.0 [−52.0, −46.1] | 0.10 | −161.1 | 15.1 | 840 | 162.8 |
+| EMA | −0.98 [−3.00, 1.35] | −0.65 | −1.8 | 5.4 | 6.4 | 0.46 |
+| Garleanu-Pedersen | +0.61 [−0.96, 2.06] | 0.19 | +0.8 | 4.9 | 6.0 | 0.44 |
+| no-trade band | +0.92 [−0.42, 2.35] | 0.10 | +0.2 | **0.3** | **0.05** | 0.00 |
+
+The band's holdout Sharpe comes from a near-empty book (0.3% of capital), so it is not comparable
+to the others'. Time in market was added to the tables after the holdout run. It is not
+available for the holdout, because the holdout is spent and was not recomputed.
 
 | comparison | Δ net SR [95% CI] |
 |---|---|
 | each smart policy − naive | +48 to +50, all CIs far above 0 |
 | GP − EMA | +1.59 [−0.26, 3.27] (it was −1.64 on test) |
-| band − GP | +0.31 [−1.27, 1.85] |
+| band − GP | +0.31 [−1.27, 1.85] (0.3%-exposure book vs full book) |
 
 **Signals in the holdout.**
 * rev_4h (IC 0.029, t = 10.7) and resid_rev (0.014, t = 5.5) are still significant.
