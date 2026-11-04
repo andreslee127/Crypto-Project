@@ -443,7 +443,10 @@ exposure). A Sharpe on that is meaningless as an investment result.
     * **The fix:** pandas' numexpr path is disabled when `s2p` is imported (tested in
       `tests/test_guards.py`), and the guards that stop the run on non-finite estimates remain.
     * **Effect on the results:** none. The published results were produced with numexpr already
-      disabled, and repeated full runs are identical.
+      disabled. Two pipeline runs from scratch (2026-11-04; all parsed caches deleted and
+      rebuilt from the raw downloads) gave exactly equal values in all 22 regenerated tables and
+      byte-identical copies of all 5 regenerated figures. They also matched the committed results.
+      Holdout files were not regenerated.
     * Not established: why the race happens (numexpr internals, Windows threading or this CPU),
       and whether it occurs on other machines.
 

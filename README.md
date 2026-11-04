@@ -95,7 +95,7 @@ python -m s2p.run_all --synthetic   # optional: whole pipeline on synthetic data
     unfilled output: wrong in 0.1–0.3% of multithreaded calls on large arrays, and never with
     1 thread.
   * pandas' numexpr path is disabled on import, guards stop the run on non-finite estimates, and
-    repeated full runs are identical.
+    two pipeline runs from scratch give exactly identical tables and figures.
   * Why the race happens, and on which machines, is not established.
 * **The theory is not checked against the paper.** The GP solution was derived from scratch and
   validated numerically. Every statement about what Garleanu & Pedersen (2013) say rests on

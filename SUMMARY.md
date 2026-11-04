@@ -54,5 +54,5 @@ lost money before costs out of sample.
 * The holdout was run exactly once.
 * Every Sharpe ratio comes with a confidence interval.
 * There is a selection-bias haircut for all trials.
-* Two full reruns gave identical numbers.
+* Two full reruns from raw data gave identical numbers and figures.
 * One command rebuilds everything: `python -m s2p.run_all`.
