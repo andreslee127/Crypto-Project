@@ -37,6 +37,21 @@ def test_bootstrap_ci_covers_true_sharpe_and_widens_with_autocorrelation():
     assert hi2 - lo2 > 1.5 * (hi1 - lo1)            # blocks keep the dependence; iid draws do not
 
 
+def test_block_bootstrap_mean_se_matches_iid_and_grows_with_dependence():
+    rng = np.random.default_rng(4)
+    x = rng.normal(0, 1, 5000)
+    se_iid = x.std(ddof=1) / np.sqrt(len(x))
+    se_boot = stats.bootstrap([x], np.mean, 24, 1000, rng).std(ddof=1)
+    assert abs(se_boot / se_iid - 1) < 0.15
+    ar = np.empty_like(x)
+    ar[0] = x[0]
+    for t in range(1, len(x)):
+        ar[t] = 0.8 * ar[t - 1] + x[t]
+    se_ar_iid = ar.std(ddof=1) / np.sqrt(len(ar))
+    se_ar_boot = stats.bootstrap([ar], np.mean, 168, 1000, rng).std(ddof=1)
+    assert se_ar_boot > 2 * se_ar_iid            # true long-run se is 3x the iid one for AR(0.8)
+
+
 def test_effective_n():
     rng = np.random.default_rng(3)
     assert stats.effective_n(rng.normal(size=10000)) > 9000

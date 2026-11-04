@@ -93,6 +93,46 @@ def signal_table(signals, d, window, cfg, rng):
     return out
 
 
+def ic_robustness(signals, d, window, cfg, rng):
+    """t-statistics of the mean IC under several dependence corrections, one row per signal.
+
+    The IC series is hourly and its target (the next 1-hour return) does not overlap, but the
+    signals use overlapping look-backs, so ICs can be autocorrelated. Methods:
+      NW(L)      Newey-West (Bartlett) HAC standard error with L hourly lags
+      boot_24h / boot_168h   circular block bootstrap of the mean IC (1-day / 1-week blocks)
+      FM_daily   mean of daily-average ICs, Newey-West with 5 daily lags
+      FM_weekly  mean of weekly-average ICs, plain t-test on weeks (weeks treated as independent)
+    p_conservative is the largest p-value across methods; Holm is applied to it.
+    """
+    sc = cfg["stats"]
+    rows = []
+    for name, sig in signals.items():
+        ic = ic_series(sig[window], d["fwd_ret"][window]).dropna()
+        x = ic.to_numpy()
+        row = {"signal": name, "mean_IC": x.mean(), "n_hours": len(x),
+               "IC_autocorr_lag1": np.corrcoef(x[1:], x[:-1])[0, 1]}
+        for L in [0, 4, 24, 48, 168, 336]:
+            row[f"t_NW{L}"] = stats.newey_west_t(x, L)
+        for b in [24, 168]:
+            se = stats.bootstrap([x], np.mean, b, sc["n_boot"], rng).std(ddof=1)
+            row[f"t_boot_{b}h"] = x.mean() / se
+        daily = ic.groupby(ic.index.floor("D")).mean().to_numpy()
+        weekly = ic.groupby(ic.index.to_period("W")).mean().to_numpy()
+        row["t_FM_daily_NW5"] = stats.newey_west_t(daily, 5)
+        row["t_FM_weekly"] = weekly.mean() / (weekly.std(ddof=1) / np.sqrt(len(weekly)))
+        row["n_weeks"] = len(weekly)
+        tcols = [k for k in row if k.startswith("t_")]
+        # normal p for the large-sample methods, Student t (weeks - 1 df) for the weekly test
+        pvals = [2 * (st.t.sf(abs(row[k]), len(weekly) - 1) if k == "t_FM_weekly" else st.norm.sf(abs(row[k])))
+                 for k in tcols]
+        row["min_abs_t"] = min(abs(row[k]) for k in tcols)
+        row["p_conservative"] = max(pvals)
+        rows.append(row)
+    out = pd.DataFrame(rows)
+    out["p_holm_conservative"] = stats.holm(out["p_conservative"].to_numpy())
+    return out
+
+
 # ---------------------------------------------------------------- ridge combination
 
 def stack(signals, names):

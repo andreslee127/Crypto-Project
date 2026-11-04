@@ -329,10 +329,28 @@ exposure). A Sharpe on that is meaningless as an investment result.
     repaired from the daily files (80 days), and the quality check enforces agreement.
   * Halted contracts with zero volume produced infinite impact. They are now untradeable, and
     exits are charged the last valid λ.
-  * During development, identical computations intermittently returned NaN in some processes. The
-    cause was not isolated; pandas' numexpr and bottleneck paths are the prime suspects. They are
-    now disabled, guards fail loudly on non-finite estimates, and **two complete pipeline runs
-    produced identical results in all 18 tables**.
+  * During development, identical computations intermittently returned NaN or wrong values.
+    **Root cause, with evidence: a race in numexpr 2.14.1's multithreaded evaluation**, which
+    pandas uses for element-wise operations on frames above about 1e6 cells. The evidence:
+    * With pandas' accelerators on, 200 builds of the signal panel on identical input gave 5
+      corrupted builds. In 4 of them the resid_rev values were off in about 1.24 million cells,
+      by up to 4.98. In 1 of them the tradeable mask (`a & b & c`) came back entirely False,
+      making every signal NaN. That is the original "mom_21d all NaN" symptom.
+    * With numexpr alone on fixed numpy arrays (no pandas), `a & b` at 40,000 × 192 was wrong in
+      3 of 1,000 calls with 8 threads and 4 of 2,000 with 2 threads. It was wrong in **0 of 2,000
+      with 1 thread**. `a * b` was wrong in 1 of 1,000 calls. Each failure filled the whole output
+      with zeros.
+    * The smallest failing size observed was 768,000 elements (1 in 5,000 calls). 262,144
+      elements and below gave no failures in over 100,000 calls, so the exact threshold is not
+      pinned down.
+    * bottleneck was tested separately and was clean (0 of 2,000).
+    * Reproduction: `tools/numexpr_race_repro.py`.
+    * **The fix:** pandas' numexpr path is disabled when `s2p` is imported (tested in
+      `tests/test_guards.py`), and the guards that stop the run on non-finite estimates remain.
+    * **Effect on the results:** none. The published results were produced with numexpr already
+      disabled, and repeated full runs are identical.
+    * Not established: why the race happens (numexpr internals, Windows threading or this CPU),
+      and whether it occurs on other machines.
 
 ## 9. What could invalidate this
 

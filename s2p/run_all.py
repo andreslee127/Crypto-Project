@@ -372,6 +372,13 @@ def main(holdout=False, synthetic_data=False):
         sig_tables[p] = research.signal_table(d["signals"], d, wins[p], cfg, rng)
         write(out, f"signals_{p}", sig_tables[p], tag + f"Single signals, {p} window",
               "IC = cross-sectional Spearman with next-hour return. p_holm = Holm-adjusted over the 6 signals.")
+    # dependence-robust significance (own random stream, so the other tables are unchanged)
+    rob_rng = np.random.default_rng(cfg["seed"] + 1)
+    for p in ["train", period]:
+        write(out, f"ic_robustness_{p}", research.ic_robustness(d["signals"], d, wins[p], cfg, rob_rng),
+              tag + f"IC significance under different dependence corrections, {p} window",
+              "Fama-MacBeth: hourly cross-sectional IC, then a time-series mean. Holm on the most "
+              "conservative p-value per signal.")
     for n in cfg["signals"]:
         trials.add("signal", n, "train", float(sig_tables["train"].set_index("signal").loc[n, "gross_SR"]))
     fig_ic(sig_tables if not holdout else {"train": sig_tables["train"], "test": sig_tables[period]},
