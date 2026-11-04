@@ -408,7 +408,17 @@ exposure). A Sharpe on that is meaningless as an investment result.
     selections unchanged).
   * Before the holdout result: ending the holdout on 2026-10-27, because Binance Vision has no data
     for 2026-10-28.
-  * None of these changed a parameter used in the test evaluation.
+  * After the holdout (2026-11-04, reporting only):
+    * the IC significance audit (§3);
+    * the band exposure and time-in-market columns (§5);
+    * the post-hoc 1–6.5 bp cost analysis and 4h-reversal break-even (§6a, 20 extra counted
+      trials).
+  * None of these changed a parameter used in the test evaluation, and none touched the holdout.
+  * The first git commit was made after the holdout run, so version history cannot independently
+    confirm the order of these steps.
+* **Theory not checked against the paper.** All statements about what Garleanu & Pedersen (2013)
+  contain rest on memory. They are listed as unverified in THEORY.md §0, and this is not a
+  replication.
 * **Engineering incidents, disclosed:**
   * Some Binance monthly files are truncated (e.g. 12 symbols end on 26 Feb 2022). They were
     repaired from the daily files (80 days), and the quality check enforces agreement.
