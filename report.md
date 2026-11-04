@@ -111,27 +111,48 @@ Full derivation and tables: THEORY.md. In brief:
 
 ## 3. RQ1 — Do the signals predict returns out of sample?
 
-Test window (train value in brackets). The IC is the cross-sectional Spearman correlation with
-the next-hour return. t uses Newey-West with 48 lags, and p is Holm-adjusted over six signals.
-The gross Sharpe is for a stand-alone, vol-weighted, gross-leverage-1 portfolio, before costs,
-with a block-bootstrap 95% CI.
+Test window (train value in brackets).
 
-| signal | IC test [train] | Pearson IC (vol-scaled) | t (NW) | Holm p | IC at h=2 / 24 | signal half-life | gross SR test [95% CI] | turnover ×/yr | break-even bp |
-|---|---|---|---|---|---|---|---|---|---|
-| mom_7d | −0.006 [−0.014] | 0.001 | −2.4 | 0.050 | −0.004 / +0.003 | 41 h | −0.28 [−2.03, 1.48] | 1,141 | −0.5 |
-| mom_21d | +0.002 [−0.010] | 0.007 | 0.9 | 0.76 | +0.004 / +0.008 | 92 h | 0.28 [−1.16, 1.83] | 708 | 0.9 |
-| rev_4h | **+0.028** [0.054] | 0.008 | 11.8 | <1e−30 | +0.018 / −0.010 | 1.7 h | −0.85 [−2.33, 0.75] | 5,999 | −0.3 |
-| funding | **+0.009** [0.005] | 0.003 | 4.2 | 1e−4 | +0.009 / +0.013 | 41 h | −0.48 [−2.01, 1.00] | 513 | −1.7 |
-| volume_shock | −0.002 [−0.008] | −0.001 | −0.8 | 0.76 | −0.001 / +0.008 | 86 h | 0.10 [−1.52, 1.80] | 719 | 0.3 |
-| resid_rev | **+0.019** [0.033] | 0.009 | 9.0 | 1e−18 | +0.014 / −0.004 | 9.2 h | −0.47 [−2.08, 1.27] | 2,624 | −0.4 |
-| ridge combination | +0.024 [0.044] | 0.007 | 10.5 | – | +0.016 / −0.001 | 2.5 h | −0.89 [−2.59, 0.68] | 5,581 | −0.3 |
+**How the statistics are computed** (audited after the holdout run; the code is unchanged):
+* **IC.** Each hour, the cross-sectional Spearman correlation between the signal and the *next
+  1-hour* return is computed. These hourly ICs are then averaged over time (Fama-MacBeth
+  aggregation). The forecast target does not overlap from one hour to the next, although the
+  signals' look-backs (e.g. 4 hours) do.
+* **t-statistic and Holm p.** The reported t uses a Newey-West (Bartlett) standard error with 48
+  hourly lags. No plain iid t-test is used anywhere.
+* **Robustness.** The audit table `results/ic_robustness_{train,test}.md` recomputes t with
+  Newey-West at 0–336 lags, a block bootstrap of the mean IC (1-day and 1-week blocks), and
+  daily and weekly Fama-MacBeth means. "Cons. t" below is the smallest |t| across these ten
+  methods. "Cons. Holm p" is Holm applied to each signal's largest p-value.
+* **Why the methods agree.** The hourly IC series has almost no autocorrelation (lag-1 between
+  −0.04 and +0.003), so the methods give similar answers.
+* **Gross Sharpe.** For a stand-alone, vol-weighted, gross-leverage-1 portfolio, before costs,
+  with a block-bootstrap 95% CI.
+* **ICIR.** The annualised ICIR below is descriptive (mean/sd × √8760, an iid scaling), not a
+  test.
+
+| signal | IC test [train] | Pearson IC (vol-scaled) | t NW48 | cons. t | cons. Holm p | IC at h=2 / 24 | signal half-life | gross SR test [95% CI] | turnover ×/yr | break-even bp |
+|---|---|---|---|---|---|---|---|---|---|---|
+| mom_7d | −0.006 [−0.014] | 0.001 | −2.4 | 2.1 | 0.11 | −0.004 / +0.003 | 41 h | −0.28 [−2.03, 1.48] | 1,141 | −0.5 |
+| mom_21d | +0.002 [−0.010] | 0.007 | 0.9 | 0.7 | 0.92 | +0.004 / +0.008 | 92 h | 0.28 [−1.16, 1.83] | 708 | 0.9 |
+| rev_4h | **+0.028** [0.054] | 0.008 | 11.8 | 8.9 | <1e−15 | +0.018 / −0.010 | 1.7 h | −0.85 [−2.33, 0.75] | 5,999 | −0.3 |
+| funding | **+0.009** [0.005] | 0.003 | 4.2 | 3.6 | 0.0014 | +0.009 / +0.013 | 41 h | −0.48 [−2.01, 1.00] | 513 | −1.7 |
+| volume_shock | −0.002 [−0.008] | −0.001 | −0.8 | 0.7 | 0.92 | −0.001 / +0.008 | 86 h | 0.10 [−1.52, 1.80] | 719 | 0.3 |
+| resid_rev | **+0.019** [0.033] | 0.009 | 9.0 | 8.2 | <1e−14 | +0.014 / −0.004 | 9.2 h | −0.47 [−2.08, 1.27] | 2,624 | −0.4 |
+| ridge combination | +0.024 [0.044] | 0.007 | 10.5 | – | – | +0.016 / −0.001 | 2.5 h | −0.89 [−2.59, 0.68] | 5,581 | −0.3 |
+
+**What survives the audit.** rev_4h, resid_rev and funding remain significant under every
+correction. On train, all six signals do. mom_7d's borderline test-period result (NW48 Holm p
+0.050) does not survive: its conservative Holm p is 0.11. On test, no conclusion changes. The
+holdout statistics in §7 use NW48 only. They were not recomputed, because the holdout is spent.
 
 ICIR (annualised mean/std of hourly IC), test: rev_4h 9.2, resid_rev 7.1, funding 3.5, the rest
 below 2. Full tables: `results/signals_test.md`, `signals_train.md`, `combined_test.md`.
 
 **Answer.** *Statistically yes, economically no.*
 
-* **Reversal at 1–4 hours** is the only strong effect. It is significant in both periods but
+* **Reversal at 1–4 hours** is the only strong effect. It is significant in both periods (test t
+  between 8.9 and 12.1 across the dependence corrections) but
   roughly halves from train to test. Most of it is gone after one bar: the IC falls from 0.028 to
   0.018 if you skip one hour, and to 0.002 at six hours. This pattern is what bid-ask bounce in
   last-trade closes, plus very fast liquidity-driven reversal, would produce. Kline data cannot
