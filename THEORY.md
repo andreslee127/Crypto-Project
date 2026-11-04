@@ -3,12 +3,28 @@
 This file derives everything the code in `s2p/lq.py`, `s2p/dp.py` and `s2p/backtest.py` uses.
 It is written to be explained aloud: every step is one idea.
 
-**Source note.** The solution below is derived from scratch. The paper (Garleanu & Pedersen 2013,
-*Dynamic Trading with Predictable Returns and Transaction Costs*, Journal of Finance 68(6)) was
-**not** fetched in this project, so nothing here has been checked against its text. Section 2.5
-checks our solution against the closed form for the special case Λ = λΣ *as I recall it from the
-paper*. The check passes numerically, but treat equation numbers and the exact statement as
-unverified until you compare with the paper yourself.
+**Source note.** The solution below is derived from scratch and checked numerically against
+brute-force dynamic programming (§2.6). The paper (Garleanu & Pedersen 2013) was **not**
+consulted in this project, so **this is not a replication of the paper**. Every statement about
+what the paper says rests on memory. Those statements are collected in §0 and marked
+**[unverified against the paper]** where they appear.
+
+## 0. Claims unverified against the paper (check these yourself)
+
+| # | claim made from memory | where | what *is* verified here |
+|---|---|---|---|
+| U1 | Citation details: *Dynamic Trading with Predictable Returns and Transaction Costs*, Journal of Finance, 2013, vol. 68, issue 6 | this file, README | nothing |
+| U2 | GP's model uses the same setup as §1: returns B f_t + noise, AR(1) signals Δf = −Φf + ε, quadratic cost ½Δx'ΛΔx | §1 | our own solution of §1's problem, whatever the paper's notation |
+| U3 | GP discount alpha and risk by (1−ρ)^{t+1} and trading costs by (1−ρ)^t | §2.5 | that *under this assumed convention* the mapping onto our β-discounted problem is algebraically right |
+| U4 | With Λ = λΣ, GP's trading rate is a/λ, with a = [−(γ(1−ρ)+λρ) + √((γ(1−ρ)+λρ)² + 4γλ(1−ρ)²)] / (2(1−ρ)) | §2.5, `lq.gp_published_a` | that this formula equals our Riccati solution after the U3 mapping (`test_consistent_with_recalled_gp_closed_form`) |
+| U5 | GP's aim portfolio is (γΣ)^{−1}B(I + aΦ/γ)^{−1} f_t | §2.5 | same test as U4 |
+| U6 | U4–U5 appear as a numbered proposition in the paper; the aim-as-weighted-average result is stated there with weight γ/(γ+a) | §2.5 | our own derivation of the weighted-average form (3) and its numerical check |
+| U7 | Λ = λΣ (costs proportional to risk) is the paper's leading special case | §2.5 | nothing |
+
+What the numerical match in U4–U5 shows: if my memory of the formulas is right, our solver
+reproduces them. It cannot show that my memory is right. A wrong memory that happened to be
+algebraically consistent with the correct solution would also pass. All results in this project
+come from our own solver, not from these recalled formulas.
 
 ---
 
@@ -26,6 +42,8 @@ Time is discrete (here: one period = one hour). There are n assets and K signals
 | Λ | quadratic trading-cost matrix: trading Δx costs ½ Δx'ΛΔx |
 | γ | risk aversion |
 | β | per-period discount factor (0.999 per hour here) |
+
+*(That this is the paper's setup and notation is from memory: U2.)*
 
 **Signals decay.** Each signal mean-reverts (an AR(1)): f_{t+1} = (I − Φ) f_t + ε_{t+1}. If Φ is
 diagonal with entries φ_k, signal k keeps a fraction ρ_k = 1 − φ_k of its value each period. So
@@ -132,13 +150,17 @@ portfolio is scaled by
 **Fast signals (small ρ_k) are scaled down more**, because they will be gone before the position
 is built.
 
-**Check against the paper's special case (memory, unverified).** As I recall it, GP discount
-alpha and risk by (1−r)^{t+1} and costs by (1−r)^t. Dividing their objective by (1−r)^t maps it
-onto ours with β = 1−r, γ → (1−r)γ, B → (1−r)B. With Λ = λΣ our solution then gives trading
-rate a/λ, with a = [−(γ(1−r)+λr) + √((γ(1−r)+λr)² + 4γλ(1−r)²)] / (2(1−r)), and
-aim = (γΣ)^{−1}B(I + aΦ/γ)^{−1} f. The test `test_consistent_with_recalled_gp_closed_form`
-confirms this numerically. This is the closed form I remember from GP's Proposition; whether the
-memory is exact must be checked against the paper.
+**Consistency with the paper's special case as I recall it [unverified against the paper:
+U3–U7].**
+* **Discounting.** As I recall it, GP discount alpha and risk by (1−r)^{t+1} and costs by
+  (1−r)^t (U3). Dividing their objective by (1−r)^t maps it onto ours with β = 1−r,
+  γ → (1−r)γ, B → (1−r)B.
+* **Closed form.** With Λ = λΣ (U7), our solution then gives trading rate a/λ, with
+  a = [−(γ(1−r)+λr) + √((γ(1−r)+λr)² + 4γλ(1−r)²)] / (2(1−r)) (U4), and
+  aim = (γΣ)^{−1}B(I + aΦ/γ)^{−1} f (U5).
+* **What the test shows.** `test_consistent_with_recalled_gp_closed_form` confirms numerically
+  that our solver produces these formulas. It does not confirm that the paper states them, or
+  under which proposition number (U6).
 
 ### 2.6 Numerical validation (all in `tests/test_theory.py`, all pass)
 
