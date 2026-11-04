@@ -225,11 +225,18 @@ Paired block-bootstrap differences in net Sharpe (same resampled weeks for both 
 
 (The band rows compare a 0.3%-exposure book with full books; see the note above.)
 
-**Selection-bias haircut.** 74 variants were evaluated in total (`results/trials_test.csv`: 6
-signals, 4 ridge penalties, 20 policy-grid points, 5 grid-edge checks, 32 cost scenarios, 3 decay
-scenarios, 4 main evaluations). The expected maximum Sharpe of 74 pure-noise strategies over this
-sample is about 2.0. The deflated-Sharpe probability that the true Sharpe exceeds that is 0.27
-(EMA), 0.04 (band, on its near-empty book) and 0.004 (GP).
+**Selection-bias haircut.** Before the holdout, 74 variants had been evaluated on train and test:
+* 6 signals and 4 ridge penalties;
+* 20 policy-grid points and 5 grid-edge checks;
+* 32 cost scenarios, 3 decay scenarios and 4 main evaluations.
+
+With those 74, the expected maximum Sharpe of pure-noise strategies over this sample is about
+2.0. The deflated-Sharpe probability that the true Sharpe exceeds it is 0.27 (EMA), 0.04 (band,
+on its near-empty book) and 0.004 (GP).
+
+The post-hoc analysis in §6a adds 20 test-period trials. `results/haircut_test.md` now uses
+n = 94, giving a noise maximum of about 2.05 and probabilities of 0.24 (EMA), 0.03 (band) and
+0.003 (GP). The conclusion is the same.
 
 **Answer.**
 
@@ -268,6 +275,43 @@ costs, so GP and the band adapt automatically.
 At every cost level from 0.5× upwards, the band's book is below 1% of capital, so its Sharpe is
 not comparable to the others'. Exposure, turnover and time in market for every cell are in
 `results/cost_sensitivity_test.md`.
+
+### 6a. Post-hoc sensitivity analysis, not a pre-registered result
+
+Added after the holdout run (`config.yaml: posthoc`). **Test period only; the holdout was not
+touched.** Policy parameters are frozen from train. "Total cost" is the linear cost per unit
+traded (fee + half-spread, scaled together); quadratic impact stays at its 1× level. This adds
+**20 trials**: the test-period count becomes 94, and the project total 139 (119 up to the holdout
++ 20). The haircut below uses n = 94.
+
+| total linear cost | naive | EMA | GP | band [avg gross exposure] |
+|---|---|---|---|---|
+| 1 bp | −40.8 [−44.9, −37.0] | +1.74 [−0.03, 3.41] | −0.19 [−2.00, 1.43] | **−2.68 [−4.44, −0.87]** [4.7%] |
+| 2 bp | −43.2 | +1.70 [−0.09, 3.40] | −0.13 | −1.08 [−2.61, 0.44] [2.0%] |
+| 3 bp | −45.5 | +1.65 [−0.13, 3.41] | −0.12 | −0.43 [−1.95, 1.02] [1.0%] |
+| 4.5 bp | −49.0 | +1.58 [−0.26, 3.30] | −0.13 | −0.12 [−1.37, 1.11] [0.4%] |
+| 6.5 bp (= baseline) | −53.6 | +1.48 [−0.28, 3.27] | −0.16 | +0.51 [−0.80, 1.78] [0.3%] |
+
+Deflated-Sharpe probabilities (n = 94): EMA 0.24–0.35, GP ≤ 0.004, band ≤ 0.004 except 0.03 at
+6.5 bp, naive 0. Full table: `results/posthoc_cost_levels_test.md`.
+
+* **Cheaper fees do not rescue naive trading.** At 1 bp it still loses 169% of capital a year,
+  because the quadratic impact term (kept at 1×) dominates at naive's turnover.
+* **The smart policies stay near zero.** EMA's CI touches zero at every level. GP is flat.
+* **The band changes sign as costs fall.** When cheaper costs let it trade more (4.7% exposure
+  at 1 bp), it loses money with a CI below zero. Its positive Sharpe at 6.5 bp exists only
+  because it hardly holds anything.
+
+**Break-even cost of the 4-hour reversal signal** (stand-alone portfolio, weights ∝ signal/vol,
+gross leverage 1, before any trading policy; `results/posthoc_breakeven_rev4h.md`):
+
+| window | gross return % / yr | turnover × capital / yr | break-even cost per unit traded |
+|---|---|---|---|
+| train | +45.9 | 6,161 | **0.75 bp** |
+| test | −18.5 | 5,999 | **none** (−0.31 bp: gross return already negative) |
+
+Even on train, where it worked best, the 4h reversal covers less than 1 bp per unit traded,
+about a ninth of the assumed 6.5 bp. Out of sample it loses money before any cost.
 
 `results/fig_cost_sensitivity_test.png` plots these with CIs.
 

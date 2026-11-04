@@ -33,7 +33,8 @@ costs are counted?
 4. **Smart trading avoids the disaster, mostly by not trading.** All three smart rules cut trading
    by about 99% and end near zero. Net Sharpe ratios fall between −1 and +1.5, with 95%
    confidence intervals that include zero, in both the test and the final holdout. After allowing
-   for the 119 variants we evaluated, none is distinguishable from luck. The no-trade band's
+   for the 119 variants evaluated up to the holdout, none is distinguishable from luck. That is
+   139 in total including later post-hoc checks. The no-trade band's
    Sharpe (+0.5 test, +0.9 holdout) should not be compared with the others. It comes from a
    near-empty book: on average 0.3% of capital, never 1% of capital in any test hour, and almost
    no trading.
@@ -41,8 +42,10 @@ costs are counted?
 **The lesson.** At retail taker costs (about 6.5 bp per trade plus impact), these hourly signals
 are not worth trading. The value of the optimal-trading layer here is that it recognised this and
 declined to trade, instead of turning a weak signal into a large loss. The conclusion depends on
-the cost assumptions (spreads cannot be measured from this data). With professional market-making
-costs of 1–2 bp, the fast reversal might be a different story.
+the cost assumptions (spreads cannot be measured from this data). A post-hoc check (not
+pre-registered; test period only) with costs of 1–6.5 bp per trade changes nothing. The 4-hour
+reversal covered at most 0.75 bp per unit traded even in the period where it worked best, and it
+lost money before costs out of sample.
 
 **Why you can trust it (or check it).**
 * There is a test that look-ahead is impossible.

@@ -76,6 +76,9 @@ policies:                  # tuning grids, searched on train only (every point i
   # on train only as a disclosed robustness check (counted trials); the selection rule above is unchanged.
   edge_check: {ema: [0.002, 0.001], gp: [32.0, 64.0, 128.0]}
 
+posthoc:                   # POST-HOC sensitivity, added 2026-11-04 after the holdout run. Test period only.
+  linear_cost_bps: [1.0, 2.0, 3.0, 4.5, 6.5]   # fee + half-spread per unit traded; impact stays at 1x
+
 band_dp:                   # grid for the proportional-cost dynamic programme (normalised units)
   n_x: 801                 # raised from 301 (grid steps visible in the theory figure; before any data)
   n_f: 81
