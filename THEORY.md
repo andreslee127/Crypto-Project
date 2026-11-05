@@ -4,27 +4,33 @@ This file derives everything the code in `s2p/lq.py`, `s2p/dp.py` and `s2p/backt
 It is written to be explained aloud: every step is one idea.
 
 **Source note.** The solution below is derived from scratch and checked numerically against
-brute-force dynamic programming (§2.6). The paper (Garleanu & Pedersen 2013) was **not**
-consulted in this project, so **this is not a replication of the paper**. Every statement about
-what the paper says rests on memory. Those statements are collected in §0 and marked
-**[unverified against the paper]** where they appear.
+brute-force dynamic programming (§2.6). It was then checked against the published paper:
+Gârleanu, N. and Pedersen, L. H. (2013), "Dynamic Trading with Predictable Returns and
+Transaction Costs", *Journal of Finance* 68(6), 2309–2340, doi:10.1111/jofi.12080. §0 gives
+the location in the paper of every statement made about it. This project uses the paper's
+theory (its §§II–III). It does **not** replicate the paper's empirical application (commodity
+futures, its §VI) or its persistent-cost extension (its §IV).
 
-## 0. Claims unverified against the paper (check these yourself)
+## 0. What the paper states, and where
 
-| # | claim made from memory | where | what *is* verified here |
+Checked on 2026-11-05 against the published version. All results in this project come from our
+own solver; the paper's closed forms are used only in tests, as an independent check.
+
+| # | statement | in the paper | checked here by |
 |---|---|---|---|
-| U1 | Citation details: *Dynamic Trading with Predictable Returns and Transaction Costs*, Journal of Finance, 2013, vol. 68, issue 6 | this file, README | nothing |
-| U2 | GP's model uses the same setup as §1: returns B f_t + noise, AR(1) signals Δf = −Φf + ε, quadratic cost ½Δx'ΛΔx | §1 | our own solution of §1's problem, whatever the paper's notation |
-| U3 | GP discount alpha and risk by (1−ρ)^{t+1} and trading costs by (1−ρ)^t | §2.5 | that *under this assumed convention* the mapping onto our β-discounted problem is algebraically right |
-| U4 | With Λ = λΣ, GP's trading rate is a/λ, with a = [−(γ(1−ρ)+λρ) + √((γ(1−ρ)+λρ)² + 4γλ(1−ρ)²)] / (2(1−ρ)) | §2.5, `lq.gp_published_a` | that this formula equals our Riccati solution after the U3 mapping (`test_consistent_with_recalled_gp_closed_form`) |
-| U5 | GP's aim portfolio is (γΣ)^{−1}B(I + aΦ/γ)^{−1} f_t | §2.5 | same test as U4 |
-| U6 | U4–U5 appear as a numbered proposition in the paper; the aim-as-weighted-average result is stated there with weight γ/(γ+a) | §2.5 | our own derivation of the weighted-average form (3) and its numerical check |
-| U7 | Λ = λΣ (costs proportional to risk) is the paper's leading special case | §2.5 | nothing |
+| P1 | Model: r_{t+1} = B f_t + u_{t+1}; Δf_{t+1} = −Φ f_t + ε_{t+1}; trading cost ½ Δx_t'ΛΔx_t | §II, eqs (1)–(3) | our §1 is the same problem (units below) |
+| P2 | Objective: max E_0 Σ_t [ (1−ρ)^{t+1} (x_t'r_{t+1} − (γ/2) x_t'Σx_t) − ((1−ρ)^t / 2) Δx_t'ΛΔx_t ], with ρ ∈ (0, 1) the discount rate | §II, eq (4); Bellman eq (5) | the mapping onto our β-discounted problem (§2.5) |
+| P3 | General Λ: quadratic value function; x_t = x_{t−1} + Λ^{−1}A_xx (aim_t − x_{t−1}), aim_t = A_xx^{−1}A_xf f_t | Prop. 1, eq (6); Prop. 2(i), eqs (7)–(8) | `test_gp2013_general_structure` (our M and C equal these, Λ not proportional to Σ) |
+| P4 | Special case Λ = λΣ, motivated as a dealer's compensation for the risk of taking the other side; most results hold for general Λ, the closed forms use this case | §II, Assumption 1 | nothing to check |
+| P5 | Under P4, trading rate a/λ: x_t = (1 − a/λ) x_{t−1} + (a/λ) aim_t, with a = [−(γ(1−ρ)+λρ) + √((γ(1−ρ)+λρ)² + 4γλ(1−ρ)²)] / (2(1−ρ)) | Prop. 2(ii), eqs (9)–(10) | `test_matches_gp2013_closed_form`, `lq.gp_published_a` |
+| P6 | Aim = weighted average of the current Markowitz portfolio (γΣ)^{−1}Bf_t and the expected future aim, weight z = γ/(γ+a); equivalently Σ_{τ≥t} z(1−z)^{τ−t} E_t Markowitz_τ | Prop. 3, eqs (11)–(13) | our (3); same test (our Z = zI) |
+| P7 | Under P4, aim_t = (γΣ)^{−1}B(I + aΦ/γ)^{−1} f_t; with diagonal Φ, signal k is scaled by 1/(1 + φ_k a/γ) | Prop. 4, eqs (14)–(15) | same test; our w_k in §2.5 is the same expression |
 
-What the numerical match in U4–U5 shows: if my memory of the formulas is right, our solver
-reproduces them. It cannot show that my memory is right. A wrong memory that happened to be
-algebraically consistent with the correct solution would also pass. All results in this project
-come from our own solver, not from these recalled formulas.
+**Notation differences.** In the paper x counts shares and r_{t+1} is the dollar price change
+in excess of the risk-free return; here x is in USD and returns are relative. That is the same
+problem after rescaling each asset by its price. The paper's ρ is the discount rate. Here ρ_k is
+signal k's persistence (1 − φ_k) and β is the discount factor, so §2.5 writes the paper's
+discount rate as r, with β = 1 − r.
 
 ---
 
@@ -43,7 +49,7 @@ Time is discrete (here: one period = one hour). There are n assets and K signals
 | γ | risk aversion |
 | β | per-period discount factor (0.999 per hour here) |
 
-*(That this is the paper's setup and notation is from memory: U2.)*
+*(This is the paper's setup, §0 P1–P2, in its notation except for the units noted there.)*
 
 **Signals decay.** Each signal mean-reverts (an AR(1)): f_{t+1} = (I − Φ) f_t + ε_{t+1}. If Φ is
 diagonal with entries φ_k, signal k keeps a fraction ρ_k = 1 − φ_k of its value each period. So
@@ -148,19 +154,18 @@ portfolio is scaled by
     w_k = z / (1 − (1−z) ρ_k)
 
 **Fast signals (small ρ_k) are scaled down more**, because they will be gone before the position
-is built.
+is built. Since (1−z)/z = βA/s, this is w_k = 1/(1 + φ_k βA/s): the paper's eq (15) (§0 P7).
 
-**Consistency with the paper's special case as I recall it [unverified against the paper:
-U3–U7].**
-* **Discounting.** As I recall it, GP discount alpha and risk by (1−r)^{t+1} and costs by
-  (1−r)^t (U3). Dividing their objective by (1−r)^t maps it onto ours with β = 1−r,
+**Consistency with the paper's closed forms** (§0 P2–P7).
+* **Discounting.** The paper discounts alpha and risk by (1−r)^{t+1} and costs by (1−r)^t
+  (its eq (4)). Dividing its objective by (1−r)^t maps it onto ours with β = 1−r,
   γ → (1−r)γ, B → (1−r)B.
-* **Closed form.** With Λ = λΣ (U7), our solution then gives trading rate a/λ, with
-  a = [−(γ(1−r)+λr) + √((γ(1−r)+λr)² + 4γλ(1−r)²)] / (2(1−r)) (U4), and
-  aim = (γΣ)^{−1}B(I + aΦ/γ)^{−1} f (U5).
-* **What the test shows.** `test_consistent_with_recalled_gp_closed_form` confirms numerically
-  that our solver produces these formulas. It does not confirm that the paper states them, or
-  under which proposition number (U6).
+* **Closed form.** With Λ = λΣ (its Assumption 1), our solution then gives trading rate a/λ,
+  with a = [−(γ(1−r)+λr) + √((γ(1−r)+λr)² + 4γλ(1−r)²)] / (2(1−r)) (its Prop. 2, eq (9)), aim
+  weight z = γ/(γ+a) (Prop. 3) and aim = (γΣ)^{−1}B(I + aΦ/γ)^{−1} f (Prop. 4, eq (14)).
+* **What the tests show.** `test_matches_gp2013_closed_form` checks all three numerically on a
+  three-asset problem with correlated returns. `test_gp2013_general_structure` checks the
+  paper's general-Λ rule (Prop. 2(i)) with Λ not proportional to Σ.
 
 ### 2.6 Numerical validation (all in `tests/test_theory.py`, all pass)
 
@@ -170,6 +175,7 @@ U3–U7].**
 | (ii) infinite = limit of finite | 3 assets, 2 signals, Λ not proportional to Σ; horizon 3000 recursion vs DARE solution | equal to 1e−9 |
 | (ii') aim identity (3) | same problem | equal to 1e−10 |
 | (ii'') closed form = matrix solver | 1 asset, 3 signals | equal |
+| (ii''') solver = the paper's results | 3 assets, 2 signals; Λ = λΣ for Props. 2(ii)–4, general Λ for Prop. 2(i) | equal |
 | (iii) Monte Carlo | 2 assets, a fast (ρ=0.5) and a slow (ρ=0.98) signal, 200 paths × 2,000 periods, common random numbers | GP's utility is higher than naive and than the best of 5 EMA rates, by more than 3 standard errors |
 | (iv) limits | Λ = 1e−9: M = I, aim = Markowitz. Λ = 1e9: M ≈ 0 | pass |
 

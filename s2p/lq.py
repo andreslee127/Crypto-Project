@@ -106,8 +106,9 @@ def scalar_policy(s, lam, beta, rho):
 
 
 def gp_published_a(gamma, lam, rho_disc):
-    """Closed form for 'a' with Lambda = lam*Sigma in GP's discounting, as I recall it from the
-    paper (NOT verified against the text; see THEORY.md section 2.5). Used only in a test that
-    checks it against our own solver after mapping GP's discounting onto ours."""
+    """Closed form for 'a' with Lambda = lam*Sigma in GP's discounting: Garleanu & Pedersen
+    (2013), Proposition 2(ii), eq. (9); rho_disc is their discount rate rho. Used only in a test
+    that checks it against our own solver after mapping GP's discounting onto ours
+    (THEORY.md sections 0 and 2.5)."""
     q = gamma * (1 - rho_disc) + lam * rho_disc
     return (-q + np.sqrt(q * q + 4 * gamma * lam * (1 - rho_disc) ** 2)) / (2 * (1 - rho_disc))

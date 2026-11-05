@@ -84,18 +84,31 @@ def test_scalar_closed_form_matches_general_solver():
     assert np.allclose(w * B[0] / s, sol["C"][0])
 
 
-def test_consistent_with_recalled_gp_closed_form():
-    # GP discount: (1-r)^{t+1} on alpha and risk, (1-r)^t on costs, Lambda = lam*Sigma.
-    # Dividing by (1-r)^t maps it to our problem with beta = 1-r, gamma -> (1-r) gamma, B -> (1-r) B.
-    gamma, lam, r, sig2 = 2.0, 5.0, 0.02, 0.3
-    phi = np.array([0.05, 0.4])
-    B = np.array([[0.2, 0.5]])
-    sol = lq.infinite_horizon((1 - r) * B, np.array([[sig2]]), np.array([[lam * sig2]]),
-                              np.diag(phi), (1 - r) * gamma, 1 - r)
+def test_matches_gp2013_closed_form():
+    # Garleanu & Pedersen (2013, JF 68(6)), eq. (4): (1-r)^{t+1} on alpha and risk, (1-r)^t on
+    # costs; Assumption 1: Lambda = lam*Sigma. Dividing by (1-r)^t maps it to our problem with
+    # beta = 1-r, gamma -> (1-r) gamma, B -> (1-r) B. Three correlated assets, two signals.
+    rng = np.random.default_rng(3)
+    B, Sigma, _, Phi = random_problem(rng)
+    gamma, lam, r = 2.0, 5.0, 0.02
+    n, K = B.shape
+    sol = lq.infinite_horizon((1 - r) * B, Sigma, lam * Sigma, Phi, (1 - r) * gamma, 1 - r)
     a = lq.gp_published_a(gamma, lam, r)
-    assert np.isclose(sol["M"][0, 0], a / lam)                       # trading rate a / lambda
-    aim_gp = B / (gamma * sig2) @ np.linalg.inv(np.eye(2) + a * np.diag(phi) / gamma)
-    assert np.allclose(sol["C"], aim_gp)                             # (gS)^-1 B (I + a Phi/gamma)^-1
+    assert np.allclose(sol["M"], a / lam * np.eye(n))                # Prop. 2(ii), eqs (9)-(10)
+    W = (1 - r) * gamma * Sigma + (1 - r) * sol["Axx"]
+    Z = np.linalg.solve(W, (1 - r) * gamma * Sigma)
+    assert np.allclose(Z, gamma / (gamma + a) * np.eye(n))           # Prop. 3, z = gamma/(gamma+a)
+    aim_gp = np.linalg.solve(gamma * Sigma, B) @ np.linalg.inv(np.eye(K) + a * Phi / gamma)
+    assert np.allclose(sol["C"], aim_gp)                             # Prop. 4(i), eq. (14)
+
+
+def test_gp2013_general_structure():
+    # Prop. 2(i), eqs (7)-(8), for general Lambda: trading rate Lambda^{-1} Axx, aim Axx^{-1} Axf f
+    rng = np.random.default_rng(4)
+    B, Sigma, Lam, Phi = random_problem(rng)
+    sol = lq.infinite_horizon(B, Sigma, Lam, Phi, 1.5, 0.99)
+    assert np.allclose(sol["M"], np.linalg.solve(Lam, sol["Axx"]))
+    assert np.allclose(sol["C"], np.linalg.solve(sol["Axx"], sol["Axf"]))
 
 
 # ---------- (iii) Monte Carlo: optimal policy has higher net utility ----------
