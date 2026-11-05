@@ -2,7 +2,7 @@
 
 Andres Lee · research project, 2026
 
-**Negative result, honestly tested.**
+**In short: real signals, too small to trade.**
 * **What was tested.** Six hourly signals, specified in advance (self-declared, not
   independently timestamped), on the 25 most-traded Binance USDT
   perpetuals (2021–2026), traded four ways: naive rebalancing, an EMA-smoothed target,

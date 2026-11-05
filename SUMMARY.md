@@ -1,6 +1,6 @@
 # From signal to portfolio: one-page summary
 
-**Question.** Can simple, honestly tested signals predict next-hour returns of the 25 most-traded
+**Question.** Can simple signals, tested out of sample, predict next-hour returns of the 25 most-traded
 crypto perpetual futures? And if they can, what is the smartest way to trade them once trading
 costs are counted?
 

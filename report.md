@@ -32,7 +32,7 @@
   band +0.92 on a 0.3%-exposure book. All CIs contain zero. The GP-vs-EMA ranking flipped relative
   to test, and the funding signal faded (§7).
 
-The honest headline: **with retail-level taker costs, these hourly signals are not worth trading,
+The headline: **with retail-level taker costs, these hourly signals are not worth trading,
 and the job of the optimal-trading layer is mainly to recognise that.**
 
 ---
@@ -378,7 +378,7 @@ policies avoid that by trading very little, and their net Sharpes cannot be told
 or from each other. The GP-vs-EMA ranking flipped sign between test and holdout, which supports
 reading it as noise. Most of EMA's holdout loss is a single drop of about 2.5% of capital in early
 September 2025 (`results/fig_pnl_holdout.png`). It is the same tail-dominance seen in §3: one bad
-hour decides the period. One honest caveat: the band's +0.92 comes from holding a tiny book (0.3% gross
+hour decides the period. One caveat: the band's +0.92 comes from holding a tiny book (0.3% gross
 exposure). A Sharpe on that is meaningless as an investment result.
 
 ## 8. Limitations
