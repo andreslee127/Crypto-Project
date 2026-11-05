@@ -102,9 +102,10 @@ Full derivation and tables: THEORY.md. In brief:
   * The infinite-horizon DARE solution equals a 3,000-step backward recursion to 1e−9.
   * In Monte Carlo, GP beats naive and the best EMA by more than 3 standard errors.
   * Λ → 0 gives Markowitz; Λ → ∞ gives no trading.
-  * The solution also matches the GP closed form for Λ = λΣ as I recall it. The paper itself was
-    not consulted, so this is **not a replication**. The claims about the paper are listed as
-    unverified in THEORY.md §0.
+  * The solution matches the paper's results (checked against the published text): the
+    general-Λ rule (Prop. 2(i)) and, for Λ = λΣ, the trading rate (Prop. 2(ii)), the aim weight
+    (Prop. 3) and the aim portfolio (Prop. 4). THEORY.md §0 gives equation numbers. The paper's
+    empirical application (commodity futures) is not replicated.
 * **No-trade band:** a DP on a (position, signal) grid. Its structure is buy / hold / sell
   (`results/fig_theory_band.png`). In simulation with a proportional cost ĉ = 2 (normalised;
   realistic for this data), the band captures 71.5% of the frictionless utility, GP 66.3%, EMA
@@ -256,8 +257,8 @@ n = 94, giving a noise maximum of about 2.05 and probabilities of 0.24 (EMA), 0.
   not tested here: GP scales the fast reversal signals down and leans on the slow ones (funding,
   momentum, volume), whose train coefficients did not hold up in test. EMA smoothing of a
   reversal-dominated target behaves like a slower, weekly reversal, which happened to work in
-  2024–25. A ranking that flips between periods, among near-zero Sharpes, after 74 trials, is noise
-  until shown otherwise.
+  2024–25. A ranking that flips between periods, among near-zero Sharpes, after 74 pre-holdout trials
+  (94 counting §6a), is noise until shown otherwise.
 
 ## 6. RQ4 — Sensitivity to costs and decay
 
@@ -336,7 +337,8 @@ was loaded only with `--holdout` and run once, with every parameter frozen from 
 wrote `results/HOLDOUT_RUN.txt`, and a second run is refused. A first attempt stopped at the
 data-quality check before computing anything, because 2026-10-28 is missing at the source. The
 end date was then moved to 2026-10-27 and the run repeated. Nothing else changed. Results are
-reported as they came out.
+reported as they came out. Git history starts after this run (§8), so that the holdout was run
+only once is self-declared; the guard file now refuses any rerun.
 
 | policy | net SR [95% CI] | gross SR | net % / yr | avg gross exposure, % of capital | turnover ×/yr | cost drag % / yr |
 |---|---|---|---|---|---|---|
@@ -414,12 +416,17 @@ exposure). A Sharpe on that is meaningless as an investment result.
     * the band exposure and time-in-market columns (§5);
     * the post-hoc 1–6.5 bp cost analysis and 4h-reversal break-even (§6a, 20 extra counted
       trials).
+  * 2026-11-05, wording only: the `config.yaml` header comment was corrected to say the settings
+    were self-declared and have the exceptions listed here; THEORY.md was checked against the
+    paper and two tests were added. No parameter changed and no result was recomputed.
   * None of these changed a parameter used in the test evaluation, and none touched the holdout.
   * The first git commit was made after the holdout run, so version history cannot independently
     confirm the order of these steps.
-* **Theory not checked against the paper.** All statements about what Garleanu & Pedersen (2013)
-  contain rest on memory. They are listed as unverified in THEORY.md §0, and this is not a
-  replication.
+* **Theory checked against the paper; its application is not replicated.** The statements about
+  Gârleanu & Pedersen (2013) were checked against the published text on 2026-11-05, after the
+  holdout (THEORY.md §0). The check added tests and documentation only; no code used for any
+  result changed. The paper's commodity-futures application and its persistent-cost extension
+  are not reproduced here.
 * **Engineering incidents, disclosed:**
   * Some Binance monthly files are truncated (e.g. 12 symbols end on 26 Feb 2022). They were
     repaired from the daily files (80 days), and the quality check enforces agreement.
@@ -465,7 +472,7 @@ exposure). A Sharpe on that is meaningless as an investment result.
 4. **Regime dependence.** 2021 (strong reversal) dominates train. The relation weakened in
    2024–25, and the momentum signs flipped. A different sample could change which slow signals the
    ridge favours, and with it the GP/EMA comparison.
-5. **The haircut.** If the true number of effective trials is much lower than 74 (many are highly
+5. **The haircut.** If the true number of effective trials is much lower than the 94 counted on test (many are highly
    correlated variants), the haircut is too harsh. Even without it, no policy's CI excludes zero.
 
 **Figures** (`results/`):

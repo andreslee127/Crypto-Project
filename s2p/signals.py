@@ -31,7 +31,7 @@ def xs_rank(raw, mask):
 
 
 def raw_signal(spec, logp, r, funding, qvol, vol, market):
-    """Raw (un-ranked) value of one pre-registered signal."""
+    """Raw (un-ranked) value of one signal specified in advance in config.yaml."""
     L = spec["lookback"]
     kind = spec["kind"]
     if kind == "momentum":

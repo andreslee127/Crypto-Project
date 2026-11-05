@@ -182,7 +182,7 @@ def tune(ctx, cfg, train, trials, rng):
 
 
 def edge_check(ctx, cfg, wins, trials):
-    """Parameters beyond the pre-registered grid edge, scored on train (counted as trials)."""
+    """Parameters beyond the grid edge specified in advance, scored on train (counted as trials)."""
     bpy, aum = cfg["portfolio"]["bars_per_year"], cfg["portfolio"]["aum_usd"]
     rows = []
     for kind, grid in cfg["policies"].get("edge_check", {}).items():
@@ -460,11 +460,11 @@ def main(holdout=False, synthetic_data=False):
     write(out, f"decay_sensitivity_{period}", dec, tag + f"GP with mis-specified signal decay, {period}")
     if not holdout:                                     # post-hoc, test only (holdout is spent)
         ph, be = posthoc_costs(cfg, d, ctx, selected, wins, trials, np.random.default_rng(cfg["seed"] + 2))
-        note = ("POST-HOC SENSITIVITY ANALYSIS, NOT A PRE-REGISTERED RESULT. Test period only; linear cost = "
+        note = ("POST-HOC SENSITIVITY ANALYSIS, NOT SPECIFIED IN ADVANCE. Test period only; linear cost = "
                 "fee + half-spread per unit traded, impact at 1x; parameters frozen from train. ")
         write(out, "posthoc_cost_levels_test", ph, tag + "Post-hoc sensitivity: policies at 1-6.5 bp", note + BAND_NOTE)
         write(out, "posthoc_breakeven_rev4h", be, tag + "Post-hoc: break-even cost of the stand-alone 4h reversal",
-              "POST-HOC, NOT A PRE-REGISTERED RESULT. Train and test windows (no holdout). Stand-alone "
+              "POST-HOC, NOT SPECIFIED IN ADVANCE. Train and test windows (no holdout). Stand-alone "
               "rev_4h portfolio (weights ~ signal / vol, gross leverage 1), before any trading policy. "
               "Break-even = gross return / turnover: the one-way cost per unit traded at which net return "
               "is 0. A negative value means the gross return was already negative.")

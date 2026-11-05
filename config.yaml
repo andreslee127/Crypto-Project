@@ -1,7 +1,8 @@
 # Single configuration for the whole pipeline.
-# PRE-REGISTRATION: every value below was fixed on 2026-11-03, before any result on real data
-# was computed. If you change anything here after seeing results, record it in report.md and
-# count it as an extra trial.
+# SPECIFIED IN ADVANCE (self-declared, not independently timestamped): the values below were
+# fixed on 2026-11-03, before any result on real data was computed, except the changes commented
+# in place and listed in report.md §8. If you change anything here after seeing results, record
+# it in report.md and count it as an extra trial.
 
 seed: 20261103
 
@@ -39,7 +40,7 @@ splits:                    # inclusive dates, UTC; decision timestamps
   # has no data for 2026-10-28 for any symbol (monthly and daily files; checked 2026-11-03).
   burn_in_months: 6        # first months of train only fit models, never scored
 
-signals:                   # pre-registered. sign = hypothesis; all tests are two-sided.
+signals:                   # specified in advance. sign = hypothesis; all tests are two-sided.
   mom_7d:       {kind: momentum,  lookback: 168, sign: 1}    # past 7-day return
   mom_21d:      {kind: momentum,  lookback: 504, sign: 1}    # past 21-day return
   rev_4h:       {kind: reversal,  lookback: 4,   sign: 1}    # minus past 4-hour return

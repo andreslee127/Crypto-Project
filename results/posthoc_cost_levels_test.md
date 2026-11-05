@@ -1,6 +1,6 @@
 ## Post-hoc sensitivity: policies at 1-6.5 bp
 
-POST-HOC SENSITIVITY ANALYSIS, NOT A PRE-REGISTERED RESULT. Test period only; linear cost = fee + half-spread per unit traded, impact at 1x; parameters frozen from train. Read the no-trade band's Sharpe with its gross_lev (average gross exposure / capital), turnover and time in market (time_in_market = share of hours with any position; time_above_1pct = share with gross exposure >= 1% of capital): a Sharpe on a near-empty book is not comparable to the other policies.
+POST-HOC SENSITIVITY ANALYSIS, NOT SPECIFIED IN ADVANCE. Test period only; linear cost = fee + half-spread per unit traded, impact at 1x; parameters frozen from train. Read the no-trade band's Sharpe with its gross_lev (average gross exposure / capital), turnover and time in market (time_in_market = share of hours with any position; time_above_1pct = share with gross exposure >= 1% of capital): a Sharpe on a near-empty book is not comparable to the other policies.
 
 | linear_cost_bps | policy | net_SR | SR_lo95 | SR_hi95 | net_ret_pct | turnover_x_per_yr | gross_lev | time_in_market | time_above_1pct | n_trials | noise_max_SR | deflated_SR_prob |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|

@@ -7,7 +7,7 @@ costs are counted?
 **What we did.**
 * We used public Binance data, hourly, 2021–2026. The universe is chosen month by month, delisted
   coins are kept, and non-crypto contracts are excluded.
-* Six signals were fixed in advance: two momentum, short-term reversal, funding rate, volume shock
+* Six signals were specified in advance (self-declared, not independently timestamped): two momentum, short-term reversal, funding rate, volume shock
   and residual reversal. They were combined with a regression refitted every month on past data
   only.
 * The resulting forecasts were traded four ways:
@@ -51,7 +51,8 @@ lost money before costs out of sample.
 * Tests check for look-ahead in the signal and backtest code.
 * PnL is reconciled with a hand calculation.
 * Settings were fixed before the holdout; the exceptions are listed in report.md §8.
-* The holdout was run exactly once.
+* The holdout was run once (self-declared; git history starts after it, and a guard file now
+  refuses reruns).
 * Every Sharpe ratio comes with a confidence interval.
 * There is a selection-bias haircut for all trials.
 * Two full reruns from raw data gave identical numbers and figures.

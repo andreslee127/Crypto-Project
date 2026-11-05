@@ -6,7 +6,7 @@ Garleanu-Pedersen dynamic trading vs naive / EMA / no-trade-band policies (layer
 Rules that must not be broken:
 - No look-ahead. A decision at bar close t uses data with timestamp <= t only.
   `tests/test_lookahead.py` enforces this; keep it passing.
-- `config.yaml` is pre-registered. Do not change signals, splits or grids silently; any change
+- `config.yaml` was specified in advance (self-declared, not independently timestamped). Do not change signals, splits or grids silently; any change
   after results were seen goes in report.md and counts as an extra trial.
 - The holdout (see `splits.holdout`) is dropped inside `s2p.data.load_panel` unless
   `holdout=True`. Only `python -m s2p.run_all --holdout` sets it, and it may run once.

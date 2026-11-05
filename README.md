@@ -1,5 +1,7 @@
 # From signal to portfolio
 
+Andres Lee · research project, 2026
+
 **Negative result, honestly tested.**
 * **What was tested.** Six hourly signals, specified in advance (self-declared, not
   independently timestamped), on the 25 most-traded Binance USDT
@@ -31,6 +33,8 @@ USD 10m, fixed. All parameters were chosen on train (2021-07 – 2023-12).
 ¹ The band's book is near-empty: about 0.3% of capital, never 1% of capital in any test hour.
 Its Sharpe is not comparable to the other rows.
 
+![Cumulative net PnL in the test period: naive trading loses over 300% of capital; EMA, GP and the band stay within a few percent of zero](results/fig_pnl_test.png)
+
 * **Trials counted:** 94 on test, 119 including the holdout, 139 including post-hoc checks.
 * **Haircut.** In the main tables, the deflated-Sharpe probability that a policy beats the best
   of 94 noise strategies (test) or 119 (holdout) is at most 0.24 and 0.07 respectively. It is at
@@ -41,6 +45,17 @@ Its Sharpe is not comparable to the other rows.
 
 Full report: [`report.md`](report.md). One page: [`SUMMARY.md`](SUMMARY.md). Derivations:
 [`THEORY.md`](THEORY.md). Data: [`DATA.md`](DATA.md).
+
+## Methods
+
+| area | what is implemented | where |
+|---|---|---|
+| Stochastic control | linear-quadratic DP, Riccati recursion and DARE; equals Gârleanu-Pedersen (2013) Props. 2–4 | `s2p/lq.py`, `THEORY.md` §2 |
+| Numerical DP | proportional-cost no-trade band, O(grid) Bellman step checked against exhaustive search | `s2p/dp.py`, `THEORY.md` §3 |
+| Return prediction | cross-sectional rank and Pearson ICs, decay curves, walk-forward ridge combination | `s2p/signals.py`, `s2p/research.py` |
+| Inference | Newey-West and Fama-MacBeth t-stats, Holm correction, circular block-bootstrap Sharpe CIs, deflated Sharpe over all counted trials | `s2p/stats.py` |
+| Execution costs | fee + half-spread plus quadratic impact calibrated to the square-root law | `s2p/costs.py` |
+| Data | point-in-time universe with delisted contracts kept, checksum-verified downloads, quality checks | `s2p/download.py`, `s2p/data.py`, `DATA.md` |
 
 ## Reproduce
 
@@ -99,10 +114,11 @@ python -m s2p.run_all --synthetic   # optional: whole pipeline on synthetic data
   * pandas' numexpr path is disabled on import, guards stop the run on non-finite estimates, and
     two pipeline runs from scratch give exactly identical tables and figures.
   * Why the race happens, and on which machines, is not established.
-* **The theory is not checked against the paper.** The GP solution was derived from scratch and
-  validated numerically. Every statement about what Garleanu & Pedersen (2013) say rests on
-  memory, and is listed in `THEORY.md` §0 as unverified.
-* **The holdout was run once and is spent.** Statistics added after it (robustness t-stats, time
+* **The theory, not the paper's application, is reproduced.** The GP solution was derived from
+  scratch, validated numerically, and checked against the published paper: tests confirm it
+  equals the paper's Propositions 2–4 (`THEORY.md` §0 gives equation numbers). The paper's
+  commodity-futures results are not replicated.
+* **The holdout was run once and is spent** (self-declared; see Version history). Statistics added after it (robustness t-stats, time
   in market) are available for train and test only.
 * **Other limitations:**
   * diagonal risk model;
@@ -117,6 +133,14 @@ The project was not under version control while it was built. **The first git co
 after the holdout had already been run**, so git history cannot show that the settings in `config.yaml`,
 specified in advance (self-declared, not independently timestamped), came before the results. The comments in `config.yaml` and `report.md` §8 list
 every choice made after seeing data.
+
+## References
+
+* Gârleanu, N. and Pedersen, L. H. (2013). Dynamic trading with predictable returns and
+  transaction costs. *Journal of Finance* 68(6), 2309–2340.
+* Bailey, D. H. and López de Prado, M. (2014). The deflated Sharpe ratio: correcting for
+  selection bias, backtest overfitting and non-normality. *Journal of Portfolio Management*
+  40(5), 94–107.
 
 ## Ground rules
 
