@@ -1,7 +1,8 @@
 # From signal to portfolio
 
 **Negative result, honestly tested.**
-* **What was tested.** Six pre-registered hourly signals on the 25 most-traded Binance USDT
+* **What was tested.** Six hourly signals, specified in advance (self-declared, not
+  independently timestamped), on the 25 most-traded Binance USDT
   perpetuals (2021–2026), traded four ways: naive rebalancing, an EMA-smoothed target,
   Garleanu-Pedersen (GP) dynamic trading, and a proportional-cost no-trade band.
 * **The signals.** Two short-term reversal signals predict the next hour with high statistical
@@ -30,6 +31,7 @@ USD 10m, fixed. All parameters were chosen on train (2021-07 – 2023-12).
 ¹ The band's book is near-empty: about 0.3% of capital, never 1% of capital in any test hour.
 Its Sharpe is not comparable to the other rows.
 
+* **Trials counted:** 94 on test, 119 including the holdout, 139 including post-hoc checks.
 * **Haircut.** In the main tables, the deflated-Sharpe probability that a policy beats the best
   of 94 noise strategies (test) or 119 (holdout) is at most 0.24 and 0.07 respectively. It is at
   most 0.35 in the post-hoc low-cost rows.
@@ -60,7 +62,7 @@ python -m s2p.run_all --synthetic   # optional: whole pipeline on synthetic data
 
 | path | what it does |
 |---|---|
-| `config.yaml` | the single configuration (pre-registered; later changes are commented in place) |
+| `config.yaml` | the single configuration (specified in advance, self-declared and not independently timestamped; later changes are commented in place) |
 | `s2p/lq.py` | Riccati / Garleanu-Pedersen solution (finite and infinite horizon, closed forms) |
 | `s2p/dp.py` | grid dynamic programmes: brute-force check, proportional-cost no-trade band |
 | `s2p/sim.py`, `s2p/theory_report.py` | Monte Carlo on simulated signals; theory tables and figure |
@@ -112,12 +114,13 @@ python -m s2p.run_all --synthetic   # optional: whole pipeline on synthetic data
 ## Version history
 
 The project was not under version control while it was built. **The first git commit was made
-after the holdout had already been run**, so git history cannot show that the pre-registration
-in `config.yaml` came before the results. The comments in `config.yaml` and `report.md` §8 list
+after the holdout had already been run**, so git history cannot show that the settings in `config.yaml`,
+specified in advance (self-declared, not independently timestamped), came before the results. The comments in `config.yaml` and `report.md` §8 list
 every choice made after seeing data.
 
 ## Ground rules
 
-No live trading and no API keys. No look-ahead (enforced by `tests/test_lookahead.py`).
+No live trading and no API keys. Tests check for look-ahead in the signal and backtest code
+(`tests/test_lookahead.py`).
 Parameters are tuned on train only. The holdout is cut at load time and run once. Every variant
 tried is counted. Anything made from synthetic data is labelled SYNTHETIC.

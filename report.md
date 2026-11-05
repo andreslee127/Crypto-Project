@@ -11,7 +11,8 @@
   simulation it beats naive and EMA trading under quadratic costs. A proportional-cost no-trade
   band, solved by dynamic programming, beats GP when costs are proportional, as theory says it should.
 * **The signals predict next-hour returns in a statistical sense, but not in a tradeable one.**
-  Three of six pre-registered signals have test-period ICs that survive Holm correction: 4-hour
+  Three of the six signals, specified in advance (self-declared, not independently timestamped),
+  have test-period ICs that survive Holm correction: 4-hour
   reversal, residual reversal and funding. The predictive power of the strongest two halves within
   one hour and is gone within six. Their rank ICs (0.02–0.03) overstate the linear relation
   (Pearson IC on vol-scaled returns 0.008–0.009). In dollars, a few extreme hours dominate: even
@@ -62,7 +63,7 @@ excluded by a rule based on the exchange's own classification.
 | test | 2024-01 – 2025-06 | evaluation | 13,128 (78 weekly blocks) |
 | holdout | 2025-07 – 2026-10-27 | one final run | see §7 |
 
-**Signals** (pre-registered; each is a cross-sectional rank, using data ≤ t, paired with the
+**Signals** (specified in advance, self-declared and not independently timestamped; each is a cross-sectional rank, using data ≤ t, paired with the
 return from t to t+1):
 
 | name | definition | hypothesis |
@@ -276,13 +277,13 @@ At every cost level from 0.5× upwards, the band's book is below 1% of capital, 
 not comparable to the others'. Exposure, turnover and time in market for every cell are in
 `results/cost_sensitivity_test.md`.
 
-### 6a. Post-hoc sensitivity analysis, not a pre-registered result
+### 6a. Post-hoc sensitivity analysis, not specified in advance
 
 Added after the holdout run (`config.yaml: posthoc`). **Test period only; the holdout was not
 touched.** Policy parameters are frozen from train. "Total cost" is the linear cost per unit
 traded (fee + half-spread, scaled together); quadratic impact stays at its 1× level. This adds
-**20 trials**: the test-period count becomes 94, and the project total 139 (119 up to the holdout
-+ 20). The haircut below uses n = 94.
+**20 trials**. **Trials counted: 94 on test, 119 including the holdout, 139 including post-hoc
+checks.** The haircut below uses n = 94.
 
 | total linear cost | naive | EMA | GP | band [avg gross exposure] |
 |---|---|---|---|---|
@@ -458,7 +459,7 @@ exposure). A Sharpe on that is meaningless as an investment result.
 2. **Price measurement.** If last-trade closes systematically differ from tradeable prices (mid
    or bid/ask), every IC here, especially for reversal, may be biased. Order-book data would
    settle it.
-3. **A bug we did not test for.** The tests cover look-ahead, accounting, the solvers and data
+3. **A bug we did not test for.** The tests check for look-ahead in the signal and backtest code, and cover accounting, the solvers and data
    checks, not everything. A result this negative is less suspicious than a positive one. An
    independent re-implementation of the backtester is still the strongest check available.
 4. **Regime dependence.** 2021 (strong reversal) dominates train. The relation weakened in
@@ -477,7 +478,7 @@ exposure). A Sharpe on that is meaningless as an investment result.
 ## 10. Conclusion
 
 The optimal-trading machinery is correct and does what theory says. In simulation, each policy
-wins exactly where it should. On real hourly crypto data, the pre-registered signals carry real
+wins exactly where it should. On real hourly crypto data, the signals specified in advance (self-declared, not independently timestamped) carry real
 but very short-lived information, smaller than the cost of trading it. Naive implementation turns
 that information into large losses. Optimal implementation turns it into roughly nothing, by
 declining to trade. That is a negative result about the signals, and a positive one about the value
